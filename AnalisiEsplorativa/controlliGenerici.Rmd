@@ -1,0 +1,80 @@
+---
+output: html_notebook
+---
+
+# Analisi Generale del Dataset
+In questo documento vengono effettuata controlli ed operazioni generiche sull`intero dataset
+
+```{r setup, include=FALSE}
+# Caricamento Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+```
+
+
+## Caricamento del Dataset
+```{r}
+if(file.exists(here("dataset/data.csv"))){
+  data <- read.csv(here("dataset/data.csv"), sep = ";", header = TRUE, check.names = FALSE)
+  
+  # Visualizza le prime righe
+  head(data)
+  
+} else{
+  print("Il dataset non è stato trovato nella directory")
+}
+
+```
+
+## Modifiche Nomi delle Features
+```{r}
+# Sostituisci gli spazi nei nomi delle colonne con underscore
+colnames(data) <- gsub(" ", "_", colnames(data))
+
+# Rimuovi gli apostrofi
+colnames(data) <- gsub("'", "", colnames(data))
+
+# Salva il dataset modificato in un nuovo file CSV
+write.csv(data, here("dataset/dataMod.csv"), row.names = FALSE)
+
+head(data)
+```
+
+## Info del Dataset
+Vengono mostrati il numero di righe e di colonne. Inoltre, per ogni colonna viene mostrato il tipo insieme a dei valori contenuti all`interno della colonna stessa.
+```{r}
+str(data)
+```
+## Controllo Valori Mancanti
+Nessun Valore Mancante.
+```{r}
+colSums(is.na(data))
+```
+
+## Controllo Righe Duplicate
+Nessuna Riga duplicata.
+```{r}
+data[duplicated(data),]
+```
+
+
+## Variabile Target
+```{r}
+# Preparazione dei dati per il grafico a torta
+target_counts <- data %>%
+  group_by(Target) %>%
+  summarise(count = n()) %>%
+  mutate(perc = count / sum(count) * 100, 
+         label = paste0(round(perc, 1), "%"))
+
+# Creazione del grafico a torta
+ggplot(target_counts, aes(x = "", y = count, fill = Target)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y") +
+  labs(title = "Distribuzione della variabile Target") +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5))
+```
+Osservando il grafico possiamo notare che il dataset è fortemente sbilanciato: la classe Graduate rappresenta il 49.9% del dataset mentre la classe Enrolled rappresenta solamente il 17.9%.
