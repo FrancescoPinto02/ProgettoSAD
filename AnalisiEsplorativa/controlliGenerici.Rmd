@@ -35,6 +35,9 @@ colnames(data) <- gsub(" ", "_", colnames(data))
 # Rimuovi gli apostrofi
 colnames(data) <- gsub("'", "", colnames(data))
 
+# Errori nei nomi delle feature
+names(data)[names(data) == "Nacionality"] <- "Nationality"
+
 # Salva il dataset modificato in un nuovo file CSV
 write.csv(data, here("dataset/dataMod.csv"), row.names = FALSE)
 

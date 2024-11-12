@@ -69,9 +69,6 @@ bp <- barplot(table(dataset$`Marital.status`), main = "Distribuzione dello Stato
 
 # Aggiungi le frequenze sopra ogni barra
 text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
-
-
-
 ```
 
 Application Mode

@@ -8,3 +8,154 @@ In questo documento deve essere effettuata l`analisi univariata delle seguenti f
 * Nacionality
 * Gender 
 * Age at enrollment
+
+
+```{r setup, include=FALSE}
+# Caricamento Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+```
+
+## Caricamento del Dataset
+```{r}
+if(file.exists(here("dataset/dataMod.csv"))){
+  data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+  
+  # Visualizza le prime righe
+  head(data)
+  
+} else{
+  print("Il dataset non è stato trovato nella directory")
+}
+
+```
+
+## Stato Civile
+```{r}
+# Crea un vettore di Label
+data$`Marital_status` <- factor(data$`Marital_status`, 
+                                    levels = c(1, 2, 3, 4, 5, 6),
+                                    labels = c("Single", "Married", "Widower", "Divorced", "Facto Union", "Separated"))
+
+# Calcola la frequenza massima
+freq <- table(data$`Marital_status`)
+max_freq <- max(freq)
+
+# Calcola il numero di categorie
+num_categories <- length(freq)
+
+# Crea Grafico a Barre con Label
+bp <- barplot(table(data$`Marital_status`), main = "Distribuzione dello Stato Civile", 
+        xlab = "Stato Civile", 
+        ylab = "Frequenza",
+        ylim = c(0, max_freq * 1.2),
+        col = rainbow(num_categories))
+
+# Aggiungi le frequenze assolute sopra ogni barra
+text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+```
+Gli studenti sono quasi tutti Single: valutare di accorpare categorie con frequenza molto bassa in un categoria "Altro"
+
+## Nazionalità
+```{r}
+par(mar = c(6, 4, 4, 2) + 0.1)
+
+# Crea un vettore di Label
+data$`Nationality` <- factor(data$`Nationality`, 
+                                    levels = c(1, 2, 6, 11, 13, 14, 17, 21, 22, 24, 25, 26, 32, 41, 62, 100, 101, 103, 105, 108, 109),
+                                    labels = c("Portuguese", "German", "Spanish", "Italian", "Dutch", "English", "Lithuanian",
+                                               "Angolan", "Cape Verdean", "Guinean", "Mozambican", "Santomean", "Turkish", "Brazilian",
+                                               "Romanian", "Moldova", "Mexican", "Ukrainian", "Russian", "Cuban", "Colombian"))
+
+# Calcola la frequenza massima
+freq <- table(data$`Nationality`)
+max_freq <- max(freq)
+
+# Calcola il numero di categorie
+num_categories <- length(freq)
+
+# Crea Grafico a Barre con Label in verticale
+bp <- barplot(table(data$`Nationality`), main = "Distribuzione della Nazionalità", 
+              ylab = "Frequenza",
+              ylim = c(0, max_freq * 1.2),
+              col = rainbow(num_categories),
+              las = 2,         # Ruota le etichette dell'asse x in verticale
+              cex.names = 0.8) # Dimensione delle etichette delle nazionalità
+
+# Aggiungi le frequenze assolute sopra ogni barra
+text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+
+
+```
+
+```{r}
+# Filtra i dati per studenti portoghesi e non portoghesi
+portuguese_students <- subset(data, Nationality == "Portuguese")
+non_portuguese_students <- subset(data, Nationality != "Portuguese")
+
+# Calcola le percentuali della variabile Target per ciascun gruppo
+portuguese_target_percent <- prop.table(table(portuguese_students$Target)) * 100
+non_portuguese_target_percent <- prop.table(table(non_portuguese_students$Target)) * 100
+
+# Combina i dati di percentuale in una matrice
+combined_percent <- rbind(portuguese_target_percent, non_portuguese_target_percent)
+
+# Imposta i nomi delle righe
+rownames(combined_percent) <- c("Portoghesi", "Non Portoghesi")
+
+# Crea il barplot con le barre affiancate, senza la legenda
+bp <- barplot(combined_percent, beside = TRUE, main = "Distribuzione della Variabile Target rispetto alla Nazionalità",
+              xlab = "Categoria Target", ylab = "Percentuale", col = c("lightblue", "lightcoral"),
+              ylim = c(0, max(combined_percent) * 1.2))
+
+# Aggiungi la legenda in alto a destra
+legend("top", legend = rownames(combined_percent), fill = c("lightblue", "lightcoral"))
+
+# Aggiungi le percentuali sopra ciascuna barra
+text(x = bp, y = combined_percent, labels = paste(round(combined_percent, 1), "%"), 
+     pos = 3, cex = 0.8, col = "black")
+
+
+```
+La nazionalità probabilmente non è un fattore determinante nel successo/fallimento accademico
+
+## Genere
+```{r}
+# Assicurati che Gender e Target abbiano i livelli e le etichette corretti
+data$`Gender` <- factor(data$`Gender`, levels = c(0, 1), labels = c("Female", "Male"))
+
+# Calcola la distribuzione congiunta tra Target e Gender
+target_gender_table <- table(data$Target, data$Gender)
+
+# Calcola la frequenza assoluta di Gender
+gender_totals <- colSums(target_gender_table)
+
+# Crea il grafico a barre stacked
+bp <- barplot(target_gender_table, main = "Distribuzione del Genere",
+        ylab = "Frequenza Assoluta", 
+        col = c("#FF6A6A", "#32CD32", "#6495ED"),
+        width = 0.7,
+        ylim = c(0, max(gender_totals) * 1.2))
+
+# Aggiungi una legenda per la variabile Gender
+legend("topright", legend = c("Dropout", "Enrolled", "Graduated"), fill = c("#FF6A6A", "#32CD32", "#6495ED"))
+
+# Aggiungi le frequenze assolute sopra ciascuna barra
+text(x = bp, y = gender_totals, labels = gender_totals, pos = 3, cex = 1, col = "black")
+
+# Aggiungi le percentuali per ciascuna sezione di ogni barra
+for (i in 1:ncol(target_gender_table)) {
+  # Calcola la posizione cumulativa per ciascun segmento
+  cumulative_values <- cumsum(target_gender_table[, i])
+  
+  # Calcola le percentuali di ciascun segmento
+  percentages <- round(target_gender_table[, i] / gender_totals[i] * 100, 1)
+  
+  # Posiziona le percentuali all'interno di ciascuna sottobarra
+  text(x = bp[i], y = cumulative_values - target_gender_table[, i] / 2,
+       labels = paste0(percentages, "%"), cex = 0.9, col = "white", font=2)
+}
+```
+Sembrerebbe che le donne siano più propense a laurearsi nei tempi previsti, mentre gli uomini sono più propensi ad abbandonare gli studi
+
