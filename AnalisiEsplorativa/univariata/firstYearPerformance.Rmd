@@ -1,0 +1,20 @@
+---
+output: html_notebook
+---
+
+# Perfomance dello Studente nel Primo Anno Accademico
+Primo Semestre:
+* Curricular units 1st sem (credited)
+* Curricular units 1st sem (enrolled)
+* Curricular units 1st sem (evaluations)
+* Curricular units 1st sem (approved)
+* Curricular units 1st sem (grade)
+* Curricular units 1st sem (without evaluations)
+
+Secondo Semestre:
+* Curricular units 2nd sem (credited)
+* Curricular units 2nd sem (enrolled)
+* Curricular units 2nd sem (evaluations)
+* Curricular units 2nd sem (approved)
+* Curricular units 2nd sem (grade)
+* Curricular units 2nd sem (without evaluations)

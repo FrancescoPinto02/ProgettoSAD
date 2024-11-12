@@ -1,0 +1,10 @@
+---
+output: html_notebook
+---
+
+# Dati Demografici e Personali
+In questo documento deve essere effettuata l`analisi univariata delle seguenti features:
+* Marital status 
+* Nacionality
+* Gender 
+* Age at enrollment

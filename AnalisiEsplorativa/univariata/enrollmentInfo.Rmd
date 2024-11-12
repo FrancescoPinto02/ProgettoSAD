@@ -1,0 +1,16 @@
+---
+output: html_notebook
+---
+
+# Dettagli sull`Iscrizione e sulle Qualifiche Precedenti
+In questo documento deve essere effettuata l`analisi univariata delle seguenti features:
+* Application mode
+* Application order
+* Course
+* Daytime/evening attendance
+* International
+* Displaced
+* Educational special needs
+* Previous qualification
+* Previous qualification (grade)
+* Admission grade

@@ -1,0 +1,18 @@
+---
+output: html_notebook
+---
+
+# Dati Socio-Economici
+In questo documento deve essere effettuata l`analisi univariata delle seguenti features:
+* Mother's qualification
+* Father's qualification
+* Mother's occupation
+* Father's occupation
+* Scholarship holder
+* Debtor
+* Tuition fees up to date
+* Unemployment rate
+* Inflation rate
+* GDP
+
+Valutare di separare i dati dello studente (mothers qualification, ecc...) da quelli del Paese (GDP, Inflaction, ecc...)
