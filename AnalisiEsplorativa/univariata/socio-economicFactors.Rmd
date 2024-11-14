@@ -1,5 +1,7 @@
 ---
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 # Dati Socio-Economici
@@ -16,3 +18,85 @@ In questo documento deve essere effettuata l`analisi univariata delle seguenti f
 * GDP
 
 Valutare di separare i dati dello studente (mothers qualification, ecc...) da quelli del Paese (GDP, Inflaction, ecc...)
+
+```{r setup, include=FALSE}
+# Caricamento Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+```
+
+## Caricamento del Dataset
+```{r}
+if(file.exists(here("dataset/dataMod.csv"))){
+  data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+  
+  # Visualizza le prime righe
+  head(data)
+  
+} else{
+  print("Il dataset non è stato trovato nella directory")
+}
+
+```
+
+## Qualifica della madre
+```{r}
+freq_mother_qual <- table(data$`Mothers_qualification`)
+max_freq_mother_qual <- max(freq_mother_qual)
+num_categories_mother_qual <- length(freq_mother_qual)
+
+# Imposta i margini per lasciare più spazio alle etichette in basso
+par(mar = c(8, 4, 4, 2))
+
+# Crea il grafico a barre per Mother's Qualification usando gli ID come etichette
+bp_mother_qual <- barplot(freq_mother_qual, main = "Distribuzione della Qualifica della Madre", 
+                          xlab = "ID della Qualifica", 
+                          ylab = "Frequenza",
+                          ylim = c(0, max_freq_mother_qual * 1.2),
+                          col = rainbow(num_categories_mother_qual),
+                          names.arg = names(freq_mother_qual),  # Usa gli ID come etichette
+                          cex.names = 0.8, las = 2)  # Ruota e riduce le dimensioni delle etichette
+
+# Aggiungi le frequenze assolute sopra ogni barra
+text(x = bp_mother_qual, y = freq_mother_qual, labels = freq_mother_qual, pos = 3, cex = 0.8, col = "black")
+
+
+```
+
+Valutare di accorpare le qualifiche in categorie più ampie (Istruzione Primaria e di Base, Istruzione Secondaria, ...)
+
+## Qualifica del padre
+```{r}
+# Calcola la frequenza per ciascun ID di Father's Qualification
+freq_father_qual <- table(data$`Fathers_qualification`)
+max_freq_father_qual <- max(freq_father_qual)
+num_categories_father_qual <- length(freq_father_qual)
+
+# Imposta i margini per lasciare più spazio alle etichette in basso
+par(mar = c(8, 4, 4, 2))
+
+# Crea il grafico a barre per Father's Qualification usando gli ID come etichette
+bp_father_qual <- barplot(freq_father_qual, main = "Distribuzione della Qualifica del Padre", 
+                          xlab = "ID della Qualifica", 
+                          ylab = "Frequenza",
+                          ylim = c(0, max_freq_father_qual * 1.2),
+                          col = rainbow(num_categories_father_qual),
+                          names.arg = names(freq_father_qual),  # Usa gli ID come etichette
+                          cex.names = 0.8, las = 2)  # Ruota e riduce le dimensioni delle etichette
+
+# Aggiungi le frequenze assolute sopra ogni barra
+text(x = bp_father_qual, y = freq_father_qual, labels = freq_father_qual, pos = 3, cex = 0.8, col = "black")
+
+```
+
+Anche qui, valutare di accorpare le qualifiche in categorie più ampie (Istruzione Primaria e di Base, Istruzione Secondaria, ...)
+
+
+
+
+
+
+
+
+
