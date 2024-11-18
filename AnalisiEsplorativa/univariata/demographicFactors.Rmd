@@ -57,6 +57,42 @@ text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
 ```
 Gli studenti sono quasi tutti Single: valutare di accorpare categorie con frequenza molto bassa in un categoria "Altro"
 
+```{r}
+# Filtra i dati per studenti portoghesi e non portoghesi
+Single_students <- subset(data, Marital_status == "Single")
+Married_students <- subset(data, Marital_status == "Married")
+Other_students <- subset(data, Marital_status != "Married" & Marital_status != "Single")
+
+# Calcola le percentuali della variabile Target per ciascun gruppo
+single_target_percent <- prop.table(table(Single_students$Target)) * 100
+married_target_percent <- prop.table(table(Married_students$Target)) * 100
+other_target_percent <- prop.table(table(Other_students$Target)) * 100
+
+# Combina i dati in una matrice trasposta
+combined_percent <- cbind(single_target_percent, married_target_percent, other_target_percent)
+
+# Imposta i nomi delle colonne
+colnames(combined_percent) <- c("Single", "Married", "Other")
+
+# Crea il barplot con le barre affiancate per ciascun gruppo
+bp <- barplot(combined_percent, beside = TRUE, main = "Distribuzione della Variabile Target per Stato Civile",
+              xlab = "Stato Civile", ylab = "Frequenza Relativa", col = c("#FF6A6A", "#32CD32", "#6495ED"),
+              ylim = c(0, max(combined_percent) * 1.5))
+
+# Aggiungi la legenda al centro sotto il titolo
+legend("top", inset = c(0, 0), 
+       legend = c("Dropout", "Enrolled", "Graduate"), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+# Aggiungi le percentuali sopra ciascuna barra
+text(x = bp, y = combined_percent, labels = paste(round(combined_percent, 1), "%"), 
+     pos = 3, cex = 0.8, col = "black")
+
+
+```
+
+
 ## Nazionalità
 ```{r}
 par(mar = c(6, 4, 4, 2) + 0.1)
@@ -98,24 +134,26 @@ non_portuguese_students <- subset(data, Nationality != "Portuguese")
 portuguese_target_percent <- prop.table(table(portuguese_students$Target)) * 100
 non_portuguese_target_percent <- prop.table(table(non_portuguese_students$Target)) * 100
 
-# Combina i dati di percentuale in una matrice
-combined_percent <- rbind(portuguese_target_percent, non_portuguese_target_percent)
+# Combina i dati in una matrice trasposta
+combined_percent <- cbind(portuguese_target_percent, non_portuguese_target_percent)
 
-# Imposta i nomi delle righe
-rownames(combined_percent) <- c("Portoghesi", "Non Portoghesi")
+# Imposta i nomi delle colonne
+colnames(combined_percent) <- c("Portoghese", "Non Portoghese")
 
-# Crea il barplot con le barre affiancate, senza la legenda
-bp <- barplot(combined_percent, beside = TRUE, main = "Distribuzione della Variabile Target rispetto alla Nazionalità",
-              xlab = "Categoria Target", ylab = "Percentuale", col = c("lightblue", "lightcoral"),
-              ylim = c(0, max(combined_percent) * 1.2))
+# Crea il barplot con le barre affiancate per ciascun gruppo
+bp <- barplot(combined_percent, beside = TRUE, main = "Distribuzione della Variabile Target per Nazionalità",
+              xlab = "Nazionalità", ylab = "Frequenza Relativa", col = c("#FF6A6A", "#32CD32", "#6495ED"),
+              ylim = c(0, max(combined_percent) * 1.5))
 
-# Aggiungi la legenda in alto a destra
-legend("top", legend = rownames(combined_percent), fill = c("lightblue", "lightcoral"))
+# Aggiungi la legenda al centro sotto il titolo
+legend("top", inset = c(0, 0), 
+       legend = c("Dropout", "Enrolled", "Graduate"), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
 
 # Aggiungi le percentuali sopra ciascuna barra
 text(x = bp, y = combined_percent, labels = paste(round(combined_percent, 1), "%"), 
      pos = 3, cex = 0.8, col = "black")
-
 
 ```
 La nazionalità probabilmente non è un fattore determinante nel successo/fallimento accademico
@@ -226,6 +264,7 @@ ggplot(data, aes(x=Age_at_enrollment, y = "")) +
         plot.title = element_text(hjust = 0.5)) 
 
 ```
+
 
 ```{r}
 # Calcolo dei quartili e dell'intervallo interquartile per l'età
