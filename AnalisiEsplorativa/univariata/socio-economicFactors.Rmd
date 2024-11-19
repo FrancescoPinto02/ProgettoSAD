@@ -92,6 +92,139 @@ text(x = bp_father_qual, y = freq_father_qual, labels = freq_father_qual, pos = 
 
 Anche qui, valutare di accorpare le qualifiche in categorie più ampie (Istruzione Primaria e di Base, Istruzione Secondaria, ...)
 
+## Occupazione della madre
+
+```{r}
+# Crea la tabella di frequenza per Mother's Occupation
+freq_mother_occ <- table(data$`Mothers_occupation`)
+max_freq_mother_occ <- max(freq_mother_occ)
+num_categories_mother_occ <- length(freq_mother_occ)
+
+# Imposta i margini per lasciare più spazio alle etichette in basso
+par(mar = c(8, 4, 4, 2))
+
+# Crea il grafico a barre per Mother's Occupation usando gli ID come etichette
+bp_mother_occ <- barplot(freq_mother_occ, main = "Distribuzione della Occupazione della Madre", 
+                         xlab = "ID dell'Occupazione", 
+                         ylab = "Frequenza",
+                         ylim = c(0, max_freq_mother_occ * 1.2),
+                         col = rainbow(num_categories_mother_occ),
+                         names.arg = names(freq_mother_occ),  # Usa gli ID come etichette
+                         cex.names = 0.8, las = 2)  # Ruota e riduce le dimensioni delle etichette
+
+```
+
+Valutare di accorpare i tipi di occupazione in categorie più ampie (Studenti, Impiegati e Personale Amministrativo, Lavoratori nei Servizi e nella Sicurezza, ...)
+
+## Occupazione del padre
+```{r}
+# Crea la tabella di frequenza per Father's Occupation
+freq_father_occ <- table(data$`Fathers_occupation`)
+max_freq_father_occ <- max(freq_father_occ)
+num_categories_father_occ <- length(freq_father_occ)
+
+# Imposta i margini per lasciare più spazio alle etichette in basso
+par(mar = c(8, 4, 4, 2))
+
+# Crea il grafico a barre per Father's Occupation usando gli ID come etichette
+bp_father_occ <- barplot(freq_father_occ, main = "Distribuzione della Occupazione del Padre", 
+                         xlab = "ID dell'Occupazione", 
+                         ylab = "Frequenza",
+                         ylim = c(0, max_freq_father_occ * 1.2),
+                         col = rainbow(num_categories_father_occ),
+                         names.arg = names(freq_father_occ),  # Usa gli ID come etichette
+                         cex.names = 0.8, las = 2)  # Ruota e riduce le dimensioni delle etichette
+
+```
+
+Anche qui, valutare di accorpare i tipi di occupazione in categorie più ampie (Studenti, Impiegati e Personale Amministrativo, Lavoratori nei Servizi e nella Sicurezza, ...)
+
+## Borsista 
+```{r}
+# Assicurati che Scholarship Holder abbia i livelli e le etichette corretti
+data$`Scholarship_holder` <- factor(data$`Scholarship_holder`, levels = c(0, 1), labels = c("Non Borsista", "Borsista"))
+
+# Calcola la distribuzione congiunta tra Target e Scholarship Holder
+target_scholarship_table <- table(data$Target, data$Scholarship_holder)
+
+# Calcola la frequenza assoluta di Scholarship Holder
+scholarship_totals <- colSums(target_scholarship_table)
+
+# Crea il grafico a barre stacked
+bp <- barplot(target_scholarship_table, main = "Distribuzione della variabile Target rispetto allo status di Borsista",
+        ylab = "Frequenza Assoluta", 
+        col = c("#FF6A6A", "#32CD32", "#6495ED"),  # Colori per Target (Dropout, Enrolled, Graduated)
+        width = 0.7,
+        ylim = c(0, max(scholarship_totals) * 1.5),
+        names.arg = c("Non Borsista", "Borsista"))  # Etichette personalizzate per l'asse X
+
+# Aggiungi una legenda per la variabile Target
+legend("topright", legend = c("Dropout", "Enrolled", "Graduated"), fill = c("#FF6A6A", "#32CD32", "#6495ED"))
+
+# Aggiungi le frequenze assolute sopra ciascuna barra
+text(x = bp, y = scholarship_totals, labels = scholarship_totals, pos = 3, cex = 1, col = "black")
+
+```
+## Debitore
+```{r}
+# Assicurati che Debtor abbia i livelli e le etichette corretti
+data$`Debtor` <- factor(data$`Debtor`, levels = c(0, 1), labels = c("Non Debitore", "Debitore"))
+
+# Calcola la distribuzione congiunta tra Target e Debtor
+target_debtor_table <- table(data$Target, data$Debtor)
+
+# Calcola la frequenza assoluta di Debtor
+debtor_totals <- colSums(target_debtor_table)
+
+# Crea il grafico a barre stacked
+bp <- barplot(target_debtor_table, main = "Distribuzione della variabile Target rispetto allo status di Debitore",
+        ylab = "Frequenza Assoluta", 
+        col = c("#FF6A6A", "#32CD32", "#6495ED"),  # Colori per Target (Dropout, Enrolled, Graduated)
+        width = 0.7,
+        ylim = c(0, max(debtor_totals) * 1.2))
+
+# Aggiungi una legenda per la variabile Target
+legend("topright", legend = c("Dropout", "Enrolled", "Graduated"), fill = c("#FF6A6A", "#32CD32", "#6495ED"))
+
+# Aggiungi le frequenze assolute sopra ciascuna barra
+text(x = bp, y = debtor_totals, labels = debtor_totals, pos = 3, cex = 1, col = "black")
+
+```
+## Tasse universitarie in regola
+```{r}
+# Assicurati che Tuition_fees_up_to_date abbia i livelli e le etichette corretti
+data$`Tuition_fees_up_to_date` <- factor(data$`Tuition_fees_up_to_date`, 
+                                         levels = c(1, 0), 
+                                         labels = c("Tasse in regola", "Tasse non in regola"))
+
+# Calcola la distribuzione congiunta tra Target e Tuition fees up to date
+target_fees_table <- table(data$Target, data$Tuition_fees_up_to_date)
+
+# Calcola la frequenza assoluta di Tuition fees up to date
+fees_totals <- colSums(target_fees_table)
+
+# Crea il grafico a barre stacked
+bp_fees <- barplot(target_fees_table, 
+                   main = "Distribuzione della variabile Target rispetto alle Tasse Universitarie",
+                   ylab = "Frequenza Assoluta", 
+                   col = c("#FF6A6A", "#32CD32", "#6495ED"),  # Colori per Target (Dropout, Enrolled, Graduated)
+                   width = 0.7,
+                   ylim = c(0, max(fees_totals) * 1.2))
+
+# Aggiungi una legenda per la variabile Target
+legend("topright", legend = c("Dropout", "Enrolled", "Graduated"), fill = c("#FF6A6A", "#32CD32", "#6495ED"))
+
+# Aggiungi le frequenze assolute sopra ciascuna barra
+text(x = bp_fees, y = fees_totals, labels = fees_totals, pos = 3, cex = 1, col = "black")
+
+```
+## Tasso di disoccupazione
+
+
+
+
+
+
 
 
 
