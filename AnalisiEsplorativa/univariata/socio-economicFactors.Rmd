@@ -219,6 +219,240 @@ text(x = bp_fees, y = fees_totals, labels = fees_totals, pos = 3, cex = 1, col =
 
 ```
 ## Tasso di disoccupazione
+```{r}
+# Calcola gli indici di sintesi per "Unemployment_rate"
+summary_stats_unemployment <- list(
+  Media = mean(data$Unemployment_rate, na.rm = TRUE),
+  Mediana = median(data$Unemployment_rate, na.rm = TRUE),
+  Moda = as.numeric(names(sort(table(data$Unemployment_rate), decreasing = TRUE)[1])),
+  Varianza = var(data$Unemployment_rate, na.rm = TRUE),
+  Deviazione_Standard = sd(data$Unemployment_rate, na.rm = TRUE),
+  Coefficiente_Variabilità = sd(data$Unemployment_rate, na.rm = TRUE) / mean(data$Unemployment_rate, na.rm = TRUE) * 100,
+  Quantile_1 = quantile(data$Unemployment_rate, 0.25, na.rm = TRUE),
+  Quantile_3 = quantile(data$Unemployment_rate, 0.75, na.rm = TRUE),
+  Minimo = min(data$Unemployment_rate, na.rm = TRUE),
+  Massimo = max(data$Unemployment_rate, na.rm = TRUE),
+  Range = max(data$Unemployment_rate, na.rm = TRUE) - min(data$Unemployment_rate, na.rm = TRUE),
+  IQR = IQR(data$Unemployment_rate, na.rm = TRUE)
+)
+
+summary_stats_unemployment
+
+```
+
+```{r}
+# Calcola Media, Mediana e Moda per Unemployment_rate
+mean_unemployment <- summary_stats_unemployment$Media
+median_unemployment <- summary_stats_unemployment$Mediana
+mode_unemployment <- summary_stats_unemployment$Moda
+
+# Crea l'istogramma della distribuzione
+ggplot(data, aes(x = Unemployment_rate)) +
+  geom_histogram(binwidth = 0.8, color = "black", fill = "lightblue") +
+  annotate("segment", x = mean_unemployment, xend = mean_unemployment, y = 0, 
+           yend = max(table(data$Unemployment_rate)) * 0.6, 
+           color = "red", linetype = "dashed", linewidth = 1) +
+  annotate("segment", x = median_unemployment, xend = median_unemployment, y = 0, 
+           yend = max(table(data$Unemployment_rate)) * 0.75, 
+           color = "blue", linetype = "dashed", linewidth = 1) +
+  annotate("segment", x = mode_unemployment, xend = mode_unemployment, y = 0, 
+           yend = max(table(data$Unemployment_rate)) * 0.9, 
+           color = "darkgreen", linetype = "dashed", linewidth = 1) +
+  labs(title = "Distribuzione del Tasso di Disoccupazione",
+       x = "Tasso di Disoccupazione (%)",
+       y = "Frequenza") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  annotate("text", x = mode_unemployment, 
+           y = max(table(data$Unemployment_rate)) * 0.9, 
+           label = paste("Moda =", round(mode_unemployment, 1)), 
+           color = "darkgreen", hjust = -0.1, vjust = -0.5) +
+  annotate("text", x = median_unemployment, 
+           y = max(table(data$Unemployment_rate)) * 0.75, 
+           label = paste("Mediana =", round(median_unemployment, 1)), 
+           color = "blue", hjust = -0.1, vjust = -0.5) +
+  annotate("text", x = mean_unemployment, 
+           y = max(table(data$Unemployment_rate)) * 0.6, 
+           label = paste("Media =", round(mean_unemployment, 1)), 
+           color = "red", hjust = -0.1, vjust = -0.5)
+
+```
+
+Valutare se trattarla come discreta (utilizzare barplot in tal caso)
+
+```{r}
+# Crea il boxplot di "Unemployment_Rate"
+ggplot(data, aes(x = Unemployment_rate, y = "")) +
+  geom_boxplot(fill = "lightblue", color = "darkblue", width = 0.3) +
+  labs(title = "Boxplot Tasso di Disoccupazione",
+       x = "Tasso di Disoccupazione") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar",
+               width = 0.15) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        plot.title = element_text(hjust = 0.5))
+
+```
+
+
+## Tasso di inflazione
+```{r}
+# Calcola gli indici di sintesi per "Inflation_rate"
+summary_stats_inflation <- list(
+  Media = mean(data$Inflation_rate, na.rm = TRUE),
+  Mediana = median(data$Inflation_rate, na.rm = TRUE),
+  Moda = as.numeric(names(sort(table(data$Inflation_rate), decreasing = TRUE)[1])),
+  Varianza = var(data$Inflation_rate, na.rm = TRUE),
+  Deviazione_Standard = sd(data$Inflation_rate, na.rm = TRUE),
+  Coefficiente_Variabilità = sd(data$Inflation_rate, na.rm = TRUE) / mean(data$Inflation_rate, na.rm = TRUE) * 100,
+  Quantile_1 = quantile(data$Inflation_rate, 0.25, na.rm = TRUE),
+  Quantile_3 = quantile(data$Inflation_rate, 0.75, na.rm = TRUE),
+  Minimo = min(data$Inflation_rate, na.rm = TRUE),
+  Massimo = max(data$Inflation_rate, na.rm = TRUE),
+  Range = max(data$Inflation_rate, na.rm = TRUE) - min(data$Inflation_rate, na.rm = TRUE),
+  IQR = IQR(data$Inflation_rate, na.rm = TRUE)
+)
+
+summary_stats_inflation
+
+```
+
+```{r}
+# Calcola Media, Mediana e Moda per Inflation_rate
+mean_inflation <- summary_stats_inflation$Media
+median_inflation <- summary_stats_inflation$Mediana
+mode_inflation <- summary_stats_inflation$Moda
+
+# Crea l'istogramma della distribuzione
+ggplot(data, aes(x = Inflation_rate)) +
+  geom_histogram(binwidth = 0.5, color = "black", fill = "lightblue") +
+  annotate("segment", x = mean_inflation, xend = mean_inflation, y = 0, 
+           yend = max(table(data$Inflation_rate)) * 0.6, 
+           color = "red", linetype = "dashed", linewidth = 1) +
+  annotate("segment", x = median_inflation, xend = median_inflation, y = 0, 
+           yend = max(table(data$Inflation_rate)) * 0.75, 
+           color = "blue", linetype = "dashed", linewidth = 1) +
+  annotate("segment", x = mode_inflation, xend = mode_inflation, y = 0, 
+           yend = max(table(data$Inflation_rate)) * 0.9, 
+           color = "darkgreen", linetype = "dashed", linewidth = 1) +
+  labs(title = "Distribuzione del Tasso di Inflazione",
+       x = "Tasso di Inflazione (%)",
+       y = "Frequenza") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  annotate("text", x = mode_inflation, 
+           y = max(table(data$Inflation_rate)) * 0.9, 
+           label = paste("Moda =", round(mode_inflation, 1)), 
+           color = "darkgreen", hjust = -0.1, vjust = -0.5) +
+  annotate("text", x = median_inflation, 
+           y = max(table(data$Inflation_rate)) * 0.75, 
+           label = paste("Mediana =", round(median_inflation, 1)), 
+           color = "blue", hjust = -0.1, vjust = -0.5) +
+  annotate("text", x = mean_inflation, 
+           y = max(table(data$Inflation_rate)) * 0.6, 
+           label = paste("Media =", round(mean_inflation, 1)), 
+           color = "red", hjust = -0.1, vjust = -0.5)
+
+```
+Anche qui, valutare se trattarla come discreta (utilizzare barplot in tal caso)
+
+```{r}
+# Crea il boxplot di "Inflation_rate"
+ggplot(data, aes(x = Inflation_rate, y = "")) +
+  geom_boxplot(fill = "lightblue", color = "darkblue", width = 0.3) +
+  labs(title = "Boxplot Tasso di Inflazione",
+       x = "Tasso di Inflazione") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar",
+               width = 0.15) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        plot.title = element_text(hjust = 0.5))
+
+```
+## PIL
+```{r}
+# Calcola gli indici di sintesi per "GDP"
+summary_stats_gdp <- list(
+  Media = mean(data$GDP, na.rm = TRUE),
+  Mediana = median(data$GDP, na.rm = TRUE),
+  Moda = as.numeric(names(sort(table(data$GDP), decreasing = TRUE)[1])),
+  Varianza = var(data$GDP, na.rm = TRUE),
+  Deviazione_Standard = sd(data$GDP, na.rm = TRUE),
+  Coefficiente_Variabilità = sd(data$GDP, na.rm = TRUE) / mean(data$GDP, na.rm = TRUE) * 100,
+  Quantile_1 = quantile(data$GDP, 0.25, na.rm = TRUE),
+  Quantile_3 = quantile(data$GDP, 0.75, na.rm = TRUE),
+  Minimo = min(data$GDP, na.rm = TRUE),
+  Massimo = max(data$GDP, na.rm = TRUE),
+  Range = max(data$GDP, na.rm = TRUE) - min(data$GDP, na.rm = TRUE),
+  IQR = IQR(data$GDP, na.rm = TRUE)
+)
+
+summary_stats_gdp
+
+```
+
+```{r}
+# Calcola Media, Mediana e Moda per GDP
+mean_gdp <- summary_stats_gdp$Media
+median_gdp <- summary_stats_gdp$Mediana
+mode_gdp <- summary_stats_gdp$Moda
+
+# Crea l'istogramma della distribuzione
+ggplot(data, aes(x = GDP)) +
+  geom_histogram(binwidth = 0.5, color = "black", fill = "lightblue") +
+  annotate("segment", x = mean_gdp, xend = mean_gdp, y = 0, 
+           yend = max(table(data$GDP)) * 0.6, 
+           color = "red", linetype = "dashed", linewidth = 1) +
+  annotate("segment", x = median_gdp, xend = median_gdp, y = 0, 
+           yend = max(table(data$GDP)) * 0.75, 
+           color = "blue", linetype = "dashed", linewidth = 1) +
+  annotate("segment", x = mode_gdp, xend = mode_gdp, y = 0, 
+           yend = max(table(data$GDP)) * 0.9, 
+           color = "darkgreen", linetype = "dashed", linewidth = 1) +
+  labs(title = "Distribuzione del PIL",
+       x = "PIL (Prodotto Interno Lordo)",
+       y = "Frequenza") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  annotate("text", x = mode_gdp, 
+           y = max(table(data$GDP)) * 0.9, 
+           label = paste("Moda =", round(mode_gdp, 1)), 
+           color = "darkgreen", hjust = -0.1, vjust = -0.5) +
+  annotate("text", x = median_gdp, 
+           y = max(table(data$GDP)) * 0.75, 
+           label = paste("Mediana =", round(median_gdp, 1)), 
+           color = "blue", hjust = -0.1, vjust = -0.5) +
+  annotate("text", x = mean_gdp, 
+           y = max(table(data$GDP)) * 0.6, 
+           label = paste("Media =", round(mean_gdp, 1)), 
+           color = "red", hjust = -0.1, vjust = -0.5)
+
+```
+
+```{r}
+# Crea il boxplot di "GDP"
+ggplot(data, aes(x = GDP, y = "")) +
+  geom_boxplot(fill = "lightblue", color = "darkblue", width = 0.3) +
+  labs(title = "Boxplot del PIL",
+       x = "PIL (Prodotto Interno Lordo)") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar",
+               width = 0.15) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        plot.title = element_text(hjust = 0.5))
+
+```
+
+
+
+
+
 
 
 
