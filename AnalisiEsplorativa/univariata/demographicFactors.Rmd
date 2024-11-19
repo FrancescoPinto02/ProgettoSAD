@@ -3,12 +3,6 @@ output: html_notebook
 ---
 
 # Dati Demografici e Personali
-In questo documento deve essere effettuata l`analisi univariata delle seguenti features:
-* Marital status 
-* Nacionality
-* Gender 
-* Age at enrollment
-
 
 ```{r setup, include=FALSE}
 # Caricamento Librerie
@@ -33,7 +27,7 @@ if(file.exists(here("dataset/dataMod.csv"))){
 
 ## Stato Civile
 ```{r}
-# Crea un vettore di Label
+# Crea Label
 data$`Marital_status` <- factor(data$`Marital_status`, 
                                     levels = c(1, 2, 3, 4, 5, 6),
                                     labels = c("Single", "Married", "Widower", "Divorced", "Facto Union", "Separated"))
@@ -58,7 +52,7 @@ text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
 Gli studenti sono quasi tutti Single: valutare di accorpare categorie con frequenza molto bassa in un categoria "Altro"
 
 ```{r}
-# Filtra i dati per studenti portoghesi e non portoghesi
+# Filtra i dati in base allo stato civile
 Single_students <- subset(data, Marital_status == "Single")
 Married_students <- subset(data, Marital_status == "Married")
 Other_students <- subset(data, Marital_status != "Married" & Marital_status != "Single")
@@ -68,24 +62,20 @@ single_target_percent <- prop.table(table(Single_students$Target)) * 100
 married_target_percent <- prop.table(table(Married_students$Target)) * 100
 other_target_percent <- prop.table(table(Other_students$Target)) * 100
 
-# Combina i dati in una matrice trasposta
 combined_percent <- cbind(single_target_percent, married_target_percent, other_target_percent)
-
-# Imposta i nomi delle colonne
 colnames(combined_percent) <- c("Single", "Married", "Other")
 
-# Crea il barplot con le barre affiancate per ciascun gruppo
+# Crea il Grouped Barplot
 bp <- barplot(combined_percent, beside = TRUE, main = "Distribuzione della Variabile Target per Stato Civile",
               xlab = "Stato Civile", ylab = "Frequenza Relativa", col = c("#FF6A6A", "#32CD32", "#6495ED"),
               ylim = c(0, max(combined_percent) * 1.5))
 
-# Aggiungi la legenda al centro sotto il titolo
+# Aggiungi Legenda
 legend("top", inset = c(0, 0), 
        legend = c("Dropout", "Enrolled", "Graduate"), 
        fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
        xpd = TRUE, horiz = TRUE)
 
-# Aggiungi le percentuali sopra ciascuna barra
 text(x = bp, y = combined_percent, labels = paste(round(combined_percent, 1), "%"), 
      pos = 3, cex = 0.8, col = "black")
 
@@ -97,7 +87,7 @@ text(x = bp, y = combined_percent, labels = paste(round(combined_percent, 1), "%
 ```{r}
 par(mar = c(6, 4, 4, 2) + 0.1)
 
-# Crea un vettore di Label
+# Crea Label
 data$`Nationality` <- factor(data$`Nationality`, 
                                     levels = c(1, 2, 6, 11, 13, 14, 17, 21, 22, 24, 25, 26, 32, 41, 62, 100, 101, 103, 105, 108, 109),
                                     labels = c("Portuguese", "German", "Spanish", "Italian", "Dutch", "English", "Lithuanian",
@@ -111,15 +101,14 @@ max_freq <- max(freq)
 # Calcola il numero di categorie
 num_categories <- length(freq)
 
-# Crea Grafico a Barre con Label in verticale
+# Crea Grafico a Barre
 bp <- barplot(table(data$`Nationality`), main = "Distribuzione della Nazionalità", 
               ylab = "Frequenza",
               ylim = c(0, max_freq * 1.2),
               col = rainbow(num_categories),
-              las = 2,         # Ruota le etichette dell'asse x in verticale
-              cex.names = 0.8) # Dimensione delle etichette delle nazionalità
+              las = 2,
+              cex.names = 0.8)
 
-# Aggiungi le frequenze assolute sopra ogni barra
 text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
 
 
@@ -134,24 +123,20 @@ non_portuguese_students <- subset(data, Nationality != "Portuguese")
 portuguese_target_percent <- prop.table(table(portuguese_students$Target)) * 100
 non_portuguese_target_percent <- prop.table(table(non_portuguese_students$Target)) * 100
 
-# Combina i dati in una matrice trasposta
 combined_percent <- cbind(portuguese_target_percent, non_portuguese_target_percent)
-
-# Imposta i nomi delle colonne
 colnames(combined_percent) <- c("Portoghese", "Non Portoghese")
 
-# Crea il barplot con le barre affiancate per ciascun gruppo
+# Crea Grouped Barplot
 bp <- barplot(combined_percent, beside = TRUE, main = "Distribuzione della Variabile Target per Nazionalità",
               xlab = "Nazionalità", ylab = "Frequenza Relativa", col = c("#FF6A6A", "#32CD32", "#6495ED"),
               ylim = c(0, max(combined_percent) * 1.5))
 
-# Aggiungi la legenda al centro sotto il titolo
+# Aggiungi Legenda
 legend("top", inset = c(0, 0), 
        legend = c("Dropout", "Enrolled", "Graduate"), 
        fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
        xpd = TRUE, horiz = TRUE)
 
-# Aggiungi le percentuali sopra ciascuna barra
 text(x = bp, y = combined_percent, labels = paste(round(combined_percent, 1), "%"), 
      pos = 3, cex = 0.8, col = "black")
 
@@ -160,13 +145,12 @@ La nazionalità probabilmente non è un fattore determinante nel successo/fallim
 
 ## Genere
 ```{r}
-# Assicurati che Gender e Target abbiano i livelli e le etichette corretti
 data$`Gender` <- factor(data$`Gender`, levels = c(0, 1), labels = c("Female", "Male"))
 
-# Calcola la distribuzione congiunta tra Target e Gender
+# Calcola la distribuzione congiunta
 target_gender_table <- table(data$Target, data$Gender)
 
-# Calcola la frequenza assoluta di Gender
+# Calcola la frequenza assoluta
 gender_totals <- colSums(target_gender_table)
 
 # Crea il grafico a barre stacked
@@ -176,21 +160,17 @@ bp <- barplot(target_gender_table, main = "Distribuzione del Genere",
         width = 0.7,
         ylim = c(0, max(gender_totals) * 1.2))
 
-# Aggiungi una legenda per la variabile Gender
+# Aggiungi Legenda
 legend("topright", legend = c("Dropout", "Enrolled", "Graduated"), fill = c("#FF6A6A", "#32CD32", "#6495ED"))
 
-# Aggiungi le frequenze assolute sopra ciascuna barra
 text(x = bp, y = gender_totals, labels = gender_totals, pos = 3, cex = 1, col = "black")
 
 # Aggiungi le percentuali per ciascuna sezione di ogni barra
 for (i in 1:ncol(target_gender_table)) {
-  # Calcola la posizione cumulativa per ciascun segmento
   cumulative_values <- cumsum(target_gender_table[, i])
   
-  # Calcola le percentuali di ciascun segmento
   percentages <- round(target_gender_table[, i] / gender_totals[i] * 100, 1)
   
-  # Posiziona le percentuali all'interno di ciascuna sottobarra
   text(x = bp[i], y = cumulative_values - target_gender_table[, i] / 2,
        labels = paste0(percentages, "%"), cex = 0.9, col = "white", font=2)
 }
@@ -221,14 +201,13 @@ summary_stats
 
 
 ```{r}
-# Calcola media, mediana e moda di "Age_at_enrollment"
 mean_age <- summary_stats$Media
 median_age <- summary_stats$Mediana
 mode_age <- summary_stats$Moda
 
-# Crea l'istogramma della distribuzione di "Age_at_enrollment" con linee interrotte e scritte all'estremità
+# Crea l'istogramma della distribuzione
 ggplot(data, aes(x = Age_at_enrollment)) +
-  geom_histogram(binwidth = 1, color = "black", fill = "skyblue") +  # binwidth aumentato per barre più larghe
+  geom_histogram(binwidth = 1, color = "black", fill = "skyblue") +
   annotate("segment", x = mean_age, xend = mean_age, y = 0, yend = max(table(data$Age_at_enrollment)) * 0.6, 
            color = "red", linetype = "dashed", linewidth = 1) +
   annotate("segment", x = median_age, xend = median_age, y = 0, yend = max(table(data$Age_at_enrollment)) * 0.75, 
@@ -239,8 +218,7 @@ ggplot(data, aes(x = Age_at_enrollment)) +
        x = "Età",
        y = "Frequenza") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +  # Centra il titolo
-  # Scritte posizionate in cima alle linee
+  theme(plot.title = element_text(hjust = 0.5)) +
   annotate("text", x = mode_age, y = max(table(data$Age_at_enrollment)) * 0.9, 
            label = paste("Moda =", round(mode_age, 1)), color = "darkgreen", hjust = -0.1, vjust = -0.5) +
   annotate("text", x = median_age, y = max(table(data$Age_at_enrollment)) * 0.75, 
@@ -250,7 +228,7 @@ ggplot(data, aes(x = Age_at_enrollment)) +
 
 ```
 ```{r}
-# Crea il boxplot di "Age_at_enrollment" senza etichette sull'asse x
+# Crea il boxplot di "Age_at_enrollment"
 ggplot(data, aes(x=Age_at_enrollment, y = "")) +
   geom_boxplot(fill = "lightblue", color = "darkblue", width=0.3) +
   labs(title = "Boxplot Età in Fase di Immatricolazione",
@@ -265,36 +243,48 @@ ggplot(data, aes(x=Age_at_enrollment, y = "")) +
 
 ```
 
-
 ```{r}
-# Calcolo dei quartili e dell'intervallo interquartile per l'età
-q1 <- summary_stats$Quantile_1
-q3 <- summary_stats$Quantile_3
-iqr <- summary_stats$IQR
+# Calcolo dei limiti
+outliers <- data %>%
+  summarise(
+    Q1 = quantile(`Age_at_enrollment`, 0.25, na.rm = TRUE),
+    Q3 = quantile(`Age_at_enrollment`, 0.75, na.rm = TRUE),
+    IQR = IQR(`Age_at_enrollment`, na.rm = TRUE)
+  ) %>%
+  mutate(
+    Lower_Bound = Q1 - 1.5 * IQR,
+    Upper_Bound = Q3 + 1.5 * IQR
+  )
 
-# Soglie per gli outlier
-lower_bound <- q1 - 1.5 * iqr
-upper_bound <- q3 + 1.5 * iqr
+lower_bound <- outliers$Lower_Bound
+upper_bound <- outliers$Upper_Bound
 
-# Creazione della colonna "Outlier" per distinguere gli studenti outlier dai normali
-data$Outlier <- ifelse(data$Age_at_enrollment < lower_bound | data$Age_at_enrollment > upper_bound, "Età Non-Standard", "Età Standard")
+# Identificazione degli outlier
+outliers_table <- data %>%
+  filter(`Age_at_enrollment` < lower_bound |
+           `Age_at_enrollment` > upper_bound)
 
-# Tabulazione delle percentuali della variabile target per outlier e normali
-library(dplyr)
-data_summary <- data %>%
-  group_by(Outlier, Target) %>%
-  summarise(count = n()) %>%
-  mutate(percentage = count / sum(count) * 100)
-
-# Generazione del grafico a barre
-library(ggplot2)
-ggplot(data_summary, aes(x = Outlier, y = percentage, fill = Target)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  geom_text(aes(label = paste0(round(percentage, 1), "%")), 
-            position = position_dodge(width = 0.9), vjust = -0.5) +
-  labs(title = "Percentuale di Successo Accademico tra Studenti di Età Standard e Non-Standard",
-       x = "Tipo di Studente", y = "Percentuale") +
-  theme_minimal()
+print(outliers_table)
 
 ```
-Rimuovere o Non Rimuovere gli Outlier???
+
+
+
+```{r}
+# BoxPlot per l`Età suddivisa in base al Target
+ggplot(data, aes(x = Target, y = Age_at_enrollment, fill = Target)) +
+  geom_boxplot(notch = FALSE,
+               outlier.color = "darkblue",
+               outlier.shape = 1,
+               width = 0.6) +
+  stat_boxplot(geom = "errorbar",
+               width = 0.2,
+               color = "black") +
+  labs(title = "Età di Immatricolazione per categoria Target",
+       x = "Target",
+       y = "Età") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
+
+```
