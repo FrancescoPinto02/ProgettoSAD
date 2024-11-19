@@ -3,14 +3,638 @@ output: html_notebook
 ---
 
 # Dettagli sull`Iscrizione e sulle Qualifiche Precedenti
-In questo documento deve essere effettuata l`analisi univariata delle seguenti features:
-* Application mode
-* Application order
-* Course
-* Daytime/evening attendance
-* International
-* Displaced
-* Educational special needs
-* Previous qualification
-* Previous qualification (grade)
-* Admission grade
+
+```{r setup, include=FALSE}
+# Caricamento Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+```
+
+## Caricamento del Dataset
+```{r}
+if(file.exists(here("dataset/dataMod.csv"))){
+  data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+  
+  # Visualizza le prime righe
+  head(data)
+  
+} else{
+  print("Il dataset non è stato trovato nella directory")
+}
+
+```
+
+## Modalità di Immatricolazione
+```{r}
+# Calcola la frequenza massima
+freq <- table(data$`Application_mode`)
+max_freq <- max(freq)
+
+# Crea il BarPlot
+bp <- barplot(freq, main = "Distribuzione delle Modalità di Immatricolazione", 
+              xlab = "Modalità di Immatricolazione", 
+              ylab = "Frequenza Assoluta",
+              ylim = c(0, max_freq * 1.2),
+              col = rainbow(length(freq)),
+              space = 1)
+
+text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+
+
+```
+```{r}
+# Calcola la frequenza relativa
+freq_table <- prop.table(table(data$Application_mode)) * 100
+
+# Sostituisci le categorie a bassa frequenza con "Altro"
+low_freq_categories <- names(freq_table[freq_table < 2])
+
+data$Application_mode_grouped <- ifelse(data$Application_mode %in% low_freq_categories, 
+                                        "Altro", 
+                                        as.character(data$Application_mode))
+
+# Ordinamento Categorie
+numeric_categories <- sort(as.numeric(setdiff(unique(data$Application_mode_grouped), "Altro")))
+data$Application_mode_grouped <- factor(data$Application_mode_grouped, 
+                                        levels = c(as.character(numeric_categories), "Altro"))
+
+# Tabella di contingenza
+target_application_table <- table(data$Target, data$Application_mode_grouped)
+
+
+target_application_relative <- prop.table(target_application_table, margin = 2) * 100
+max_percent <- max(target_application_relative)
+
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_application_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Application Mode",
+                       xlab = "Application Mode", 
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"), 
+                       ylim = c(0, max_percent * 1.2),
+                       las = 2)
+
+# Aggiungi la legenda
+legend("top", inset = c(0, 0), 
+       legend = rownames(target_application_relative), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+```
+
+
+## Application Order
+```{r}
+# Calcola la frequenza massima
+freq <- table(data$`Application_order`)
+max_freq <- max(freq)
+
+# Crea il BarPlot
+bp <- barplot(freq, main = "Distribuzione dell`ordine di immatricolazione", 
+              xlab = "Ordine di Immatricolazione", 
+              ylab = "Frequenza",
+              ylim = c(0, max_freq * 1.2),
+              col = rainbow(length(freq)),
+              space = 1)
+
+# Aggiungi le frequenze
+text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+```
+```{r}
+# Estrai le righe in cui Application Order è uguale a 0 o 9
+righe_anomale <- data[data$`Application_order` %in% c(0, 9), ]
+
+print(righe_anomale)
+```
+
+Non Sembrano Inserimenti Errati: valutare di cambiare 0 con 1 e di cambiare 9 con 6
+
+```{r}
+data$Application_order[data$Application_order == 0] <- 1
+data$Application_order[data$Application_order == 9] <- 6
+
+# Tabella di contingenza
+target_order_table <- table(data$Target, data$Application_order)
+
+# Calcola la frequenza relativa in percentuale
+target_order_relative <- prop.table(target_order_table, margin = 2) * 100
+max_percent <- max(target_order_relative)
+
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_order_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Application Order",
+                       xlab = "Application Order", 
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"), # Colori per i gruppi
+                       ylim = c(0, max_percent * 1.3))
+
+# Aggiungi la legenda
+legend("top", inset = c(0, 0), 
+       legend = rownames(target_order_relative), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+
+```
+
+
+## Course
+```{r}
+# Distribuzione dei Corsi di Laurea
+freq <- table(data$`Course`)
+max_freq <- max(freq)
+bp <- barplot(freq, main = "Distribuzione dei Corsi di Laurea", 
+              xlab = "Corso di Laurea", 
+              ylab = "Frequenza Assoluta",
+              ylim = c(0, max_freq * 1.2),
+              col = rainbow(length(freq)),
+              space = 1,
+              las = 2)
+
+text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+```
+```{r}
+# Tabella di contingenza
+target_course_table <- table(data$Target, data$Course)
+
+# Calcola la frequenza relativa in percentuale
+target_course_relative <- prop.table(target_course_table, margin = 2) * 100
+max_percent <- max(target_course_relative)
+
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_course_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Course",
+                       xlab = "Course", 
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"), # Colori per i gruppi
+                       ylim = c(0, max_percent * 1.2),
+                       las = 2,
+                       space = c(0, 2))
+
+# Aggiungi la legenda
+legend("top", inset = c(0, -0.07), 
+       legend = rownames(target_course_relative), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+```
+
+
+## Daytime/Evening Attendance
+```{r}
+# Label
+data$`Daytime/evening_attendance` <- factor(data$`Daytime/evening_attendance`, levels = c(0, 1), labels = c("Evening", "Daytime"))
+
+# Calcola la frequenza assoluta
+freq <- table(data$`Daytime/evening_attendance`)
+max_freq <- max(freq)
+
+# Crea il barplot per le frequenze assolute
+bp <- barplot(freq, 
+              main = "Frequenza alle Lezioni", 
+              ylab = "Frequenza Assoluta",
+              ylim = c(0, max_freq * 1.2),
+              col = rainbow(length(freq)),
+              space = 1,
+              las = 1)
+
+text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+```
+```{r}
+
+# Tabella di contingenza
+target_attendance_table <- table(data$Target, data$`Daytime/evening_attendance`)
+
+# Calcola la frequenza relativa in percentuale
+target_attendance_relative <- prop.table(target_attendance_table, margin = 2) * 100
+max_percent <- max(target_attendance_relative)
+
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_attendance_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Daytime/Evening Attendance",
+                       xlab = "Daytime/Evening Attendance", 
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"),
+                       ylim = c(0, max_percent * 1.2))
+
+# Aggiungi la legenda 
+legend("top", inset = c(0, 0), 
+       legend = c("Dropout", "Enrolled", "Graduate"), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+# Aggiungi i valori percentuali 
+for (i in seq_len(ncol(target_attendance_relative))) {
+  text(x = bp_relative[, i], 
+       y = target_attendance_relative[, i], 
+       labels = paste0(round(target_attendance_relative[, i], 1), "%"), 
+       pos = 3, cex = 0.8, col = "black")
+}
+
+
+```
+
+## International
+```{r}
+# Label
+data$International <- factor(data$International, levels = c(0, 1), labels = c("Non Erasmus", "Erasmus"))
+
+# Calcola la frequenza assoluta
+freq <- table(data$International)
+max_freq <- max(freq)
+
+# Crea il barplot per le frequenze assolute
+bp <- barplot(freq, 
+              main = "Distribuzione Studenti Erasmus", 
+              ylab = "Frequenza Assoluta",
+              ylim = c(0, max_freq * 1.2),
+              col = rainbow(length(freq)),
+              space = 1,
+              las = 1)
+
+# Aggiungi i valori delle frequenze
+text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+```
+
+```{r}
+# Tabella di contingenza
+target_international_table <- table(data$Target, data$International)
+
+# Calcola la frequenza relativa in percentuale
+target_international_relative <- prop.table(target_international_table, margin = 2) * 100
+max_percent <- max(target_international_relative)
+
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_international_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Erasmus",
+                       xlab = "Erasmus", 
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"),
+                       ylim = c(0, max_percent * 1.5))
+
+# Aggiungi la legenda
+legend("top", inset = c(0, 0), 
+       legend = c("Dropout", "Enrolled", "Graduate"), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+# Aggiungi i valori percentuali
+for (i in seq_len(ncol(target_international_relative))) {
+  text(x = bp_relative[, i], 
+       y = target_international_relative[, i], 
+       labels = paste0(round(target_international_relative[, i], 1), "%"), 
+       pos = 3, cex = 0.8, col = "black")
+}
+```
+
+## Displaced
+```{r}
+data$`Displaced` <- factor(data$`Displaced`, levels = c(0, 1), labels = c("In Sede", "Fuorisede"))
+
+# Calcola la distribuzione congiunta
+target_displaced_table <- table(data$Target, data$Displaced)
+
+# Calcola la frequenza assoluta
+displaced_totals <- colSums(target_displaced_table)
+
+# Crea il grafico a barre stacked
+bp <- barplot(target_displaced_table, main = "Distribuzione Studenti Fuorisede",
+        ylab = "Frequenza Assoluta",
+        xlab = "Studenti",
+        col = c("#FF6A6A", "#32CD32", "#6495ED"),
+        width = 0.7,
+        ylim = c(0, max(displaced_totals) * 1.4))
+
+# Aggiungi legenda
+legend("top", inset = c(0, -0.05), 
+       legend = c("Dropout", "Enrolled", "Graduate"), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+# Aggiungi le frequenze assolute
+text(x = bp, y = displaced_totals, labels = displaced_totals, pos = 3, cex = 1, col = "black")
+
+# Aggiungi le percentuali
+for (i in 1:ncol(target_displaced_table)) {
+  cumulative_values <- cumsum(target_displaced_table[, i])
+  
+  percentages <- round(target_displaced_table[, i] / displaced_totals[i] * 100, 1)
+  
+  text(x = bp[i], y = cumulative_values - target_displaced_table[, i] / 2,
+       labels = paste0(percentages, "%"), cex = 0.9, col = "white", font=2)
+}
+```
+
+
+## Educational Special Needs
+```{r}
+# Label
+data$Educational_special_needs <- factor(data$Educational_special_needs, levels = c(0, 1), labels = c("No", "Si"))
+
+# Calcola la frequenza assoluta
+freq <- table(data$Educational_special_needs)
+max_freq <- max(freq)
+
+# Crea il barplot per le frequenze assolute
+bp <- barplot(freq, 
+              main = "Distribuzione Studenti con Bisogni Educativi Speciali (BES)", 
+              ylab = "Frequenza Assoluta",
+              xlab = "Studenti BES",
+              ylim = c(0, max_freq * 1.2),
+              col = rainbow(length(freq)),
+              space = 1,
+              las = 1)
+
+text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+```
+```{r}
+# Tabella di contingenza
+target_bse_table <- table(data$Target, data$`Educational_special_needs`)
+
+# Calcola la frequenza relativa
+target_bse_relative <- prop.table(target_bse_table, margin = 2) * 100
+max_percent <- max(target_bse_relative)
+
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_bse_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Studenti BES",
+                       xlab = "Studenti BES", 
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"),
+                       ylim = c(0, max_percent * 1.4))
+
+# Aggiungi la legenda
+legend("top", inset = c(0, -0.05), 
+       legend = c("Dropout", "Enrolled", "Graduate"), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+# Aggiungi i valori percentuali
+for (i in seq_len(ncol(target_bse_relative))) {
+  text(x = bp_relative[, i], 
+       y = target_bse_relative[, i], 
+       labels = paste0(round(target_bse_relative[, i], 1), "%"), 
+       pos = 3, cex = 0.8, col = "black")
+}
+```
+
+## Previous Qualification
+```{r}
+# Calcola la frequenza massima
+freq <- table(data$`Previous_qualification`)
+max_freq <- max(freq)
+
+# Crea il BarPlot con le nuove etichette
+bp <- barplot(freq, main = "Distribuzione della Qualifica Precedente", 
+              xlab = "Tipologia di Qualifica", 
+              ylab = "Frequenza Assoluta",
+              ylim = c(0, max_freq * 1.2),
+              col = rainbow(length(freq)),
+              space = 1)
+
+text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+
+
+```
+```{r}
+# Calcola la frequenza relativa
+freq_table <- prop.table(table(data$Previous_qualification)) * 100
+
+# Sostituisci le categorie a bassa frequenza con "Altro"
+low_freq_categories <- names(freq_table[freq_table < 2])
+
+data$Previous_qualification_grouped <- ifelse(data$Previous_qualification %in% low_freq_categories, 
+                                        "Altro", 
+                                        as.character(data$Previous_qualification))
+
+# Ordina Categorie
+numeric_categories <- sort(as.numeric(setdiff(unique(data$Previous_qualification_grouped), "Altro")))
+
+data$Previous_qualification_grouped <- factor(data$Previous_qualification_grouped, 
+                                        levels = c(as.character(numeric_categories), "Altro"))
+
+# Tabella di contingenza
+target_qualification_table <- table(data$Target, data$Previous_qualification_grouped)
+
+# Calcola la frequenza relativa
+target_qualification_relative <- prop.table(target_qualification_table, margin = 2) * 100
+max_percent <- max(target_qualification_relative)
+
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_qualification_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Qualifica Precedente",
+                       xlab = "Qualifica Precedente", 
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"), 
+                       ylim = c(0, max_percent * 1.3),
+                       las = 1)
+
+# Aggiungi la legenda
+legend("top", inset = c(0, -0.07), 
+       legend = rownames(target_qualification_relative), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+# Aggiungi i valori percentuali
+for (i in seq_len(ncol(target_qualification_relative))) {
+  text(x = bp_relative[, i], 
+       y = target_qualification_relative[, i], 
+       labels = paste0(round(target_qualification_relative[, i], 1), "%"), 
+       pos = 3, cex = 0.7, col = "black")
+}
+
+```
+
+
+## Previous qualification (grade)
+```{r}
+# Calcola gli indici di sintesi
+summary_stats <- list(
+  Media = mean(data$`Previous_qualification_(grade)`, na.rm = TRUE),
+  Mediana = median(data$`Previous_qualification_(grade)`, na.rm = TRUE),
+  Moda = as.numeric(names(sort(table(data$`Previous_qualification_(grade)`), decreasing = TRUE)[1])),
+  Varianza = var(data$`Previous_qualification_(grade)`, na.rm = TRUE),
+  Deviazione_Standard = sd(data$`Previous_qualification_(grade)`, na.rm = TRUE),
+  Coefficiente_Variabilità = sd(data$`Previous_qualification_(grade)`, na.rm = TRUE) / mean(data$`Previous_qualification_(grade)`, na.rm = TRUE) * 100,
+  Quantile_1 = quantile(data$`Previous_qualification_(grade)`, 0.25, na.rm = TRUE),
+  Quantile_3 = quantile(data$`Previous_qualification_(grade)`, 0.75, na.rm = TRUE),
+  Minimo = min(data$`Previous_qualification_(grade)`, na.rm = TRUE),
+  Massimo = max(data$`Previous_qualification_(grade)`, na.rm = TRUE),
+  Range = max(data$`Previous_qualification_(grade)`, na.rm = TRUE) - min(data$`Previous_qualification_(grade)`, na.rm = TRUE),
+  IQR = IQR(data$`Previous_qualification_(grade)`, na.rm = TRUE)
+)
+
+summary_stats
+```
+
+
+```{r}
+hist(data$`Previous_qualification_(grade)`, 
+     breaks = seq(0, 200, by = 4),
+     main = "Distribuzione Voti della Qualifica Precedente", 
+     xlab = "Voti",
+     xlim = c(80, 200),
+     ylab = "Frequenza", 
+     col = "lightblue",
+     border = "black")               
+
+# Aggiungere griglia
+grid()
+
+```
+```{r}
+# BoxPlot Voti Qualifica Precedente
+ggplot(data, aes(x=`Previous_qualification_(grade)`, y = "")) +
+  geom_boxplot(fill = "lightblue", color = "darkblue", width=0.3) +
+  labs(title = "Boxplot Voti Qualifica Precedente",
+       x = "Voto") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar",
+               width = 0.15) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),   
+        axis.ticks.y = element_blank(),
+        plot.title = element_text(hjust = 0.5)) 
+
+```
+```{r}
+# Calcolo dei quartili e dei limiti
+outliers <- data %>%
+  summarise(
+    Q1 = quantile(`Previous_qualification_(grade)`, 0.25, na.rm = TRUE),
+    Q3 = quantile(`Previous_qualification_(grade)`, 0.75, na.rm = TRUE),
+    IQR = IQR(`Previous_qualification_(grade)`, na.rm = TRUE)
+  ) %>%
+  mutate(
+    Lower_Bound = Q1 - 1.5 * IQR,
+    Upper_Bound = Q3 + 1.5 * IQR
+  )
+
+# Identificazione degli outlier
+outliers_table <- data %>%
+  filter(`Previous_qualification_(grade)` < outliers$Lower_Bound |
+           `Previous_qualification_(grade)` > outliers$Upper_Bound)
+print(outliers_table)
+
+```
+```{r}
+# BoxPlot per voti qualifica precedente suddivisi per Target
+ggplot(data, aes(x = Target, y = `Previous_qualification_(grade)`, fill = Target)) +
+  geom_boxplot(notch = FALSE,
+               outlier.color = "darkblue",
+               outlier.shape = 1,
+               width = 0.6) +
+  stat_boxplot(geom = "errorbar",
+               width = 0.2,
+               color = "black") +
+  labs(title = "Boxplot: Voti Qualifica Precedente per Categorie Target",
+       x = "Successo Accademico (Target)",
+       y = "Voto Qualifica Precedente") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
+
+```
+
+
+## Admission Grade
+```{r}
+# Calcola gli indici di sintesi
+summary_stats <- list(
+  Media = mean(data$Admission_grade, na.rm = TRUE),
+  Mediana = median(data$Admission_grade, na.rm = TRUE),
+  Moda = as.numeric(names(sort(table(data$Admission_grade), decreasing = TRUE)[1])),
+  Varianza = var(data$Admission_grade, na.rm = TRUE),
+  Deviazione_Standard = sd(data$Admission_grade, na.rm = TRUE),
+  Coefficiente_Variabilità = sd(data$Admission_grade, na.rm = TRUE) / mean(data$Admission_grade, na.rm = TRUE) * 100,
+  Quantile_1 = quantile(data$Admission_grade, 0.25, na.rm = TRUE),
+  Quantile_3 = quantile(data$Admission_grade, 0.75, na.rm = TRUE),
+  Minimo = min(data$Admission_grade, na.rm = TRUE),
+  Massimo = max(data$Admission_grade, na.rm = TRUE),
+  Range = max(data$Admission_grade, na.rm = TRUE) - min(data$Admission_grade, na.rm = TRUE),
+  IQR = IQR(data$Admission_grade, na.rm = TRUE)
+)
+
+summary_stats
+```
+
+```{r}
+hist(data$Admission_grade, 
+     breaks = seq(0, 200, by = 4),
+     main = "Distribuzione Voti di Ammissione", 
+     xlab = "Voti",
+     xlim = c(80, 200),
+     ylab = "Frequenza", 
+     col = "lightblue",
+     border = "black")               
+
+# Aggiungere griglia
+grid()
+
+```
+
+```{r}
+# BoxPlot Voti di Ammissione
+ggplot(data, aes(x=Admission_grade, y = "")) +
+  geom_boxplot(fill = "lightblue", color = "darkblue", width=0.3) +
+  labs(title = "Boxplot Voti di Ammissione",
+       x = "Voto") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar",
+               width = 0.15) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),   
+        axis.ticks.y = element_blank(),
+        plot.title = element_text(hjust = 0.5)) 
+
+```
+```{r}
+# Calcolo dei limiti come scalari
+outliers <- data %>%
+  summarise(
+    Q1 = quantile(`Admission_grade`, 0.25, na.rm = TRUE),
+    Q3 = quantile(`Admission_grade`, 0.75, na.rm = TRUE),
+    IQR = IQR(`Admission_grade`, na.rm = TRUE)
+  ) %>%
+  mutate(
+    Lower_Bound = Q1 - 1.5 * IQR,
+    Upper_Bound = Q3 + 1.5 * IQR
+  )
+lower_bound <- outliers$Lower_Bound
+upper_bound <- outliers$Upper_Bound
+
+# Identificazione degli outlier
+outliers_table <- data %>%
+  filter(`Admission_grade` < lower_bound |
+           `Admission_grade` > upper_bound)
+
+print(outliers_table)
+
+```
+```{r}
+# BoxPlot con error bar per i voti di ammissione suddivisi per Target
+ggplot(data, aes(x = Target, y = Admission_grade, fill = Target)) +
+  geom_boxplot(notch = FALSE,
+               outlier.color = "darkblue",
+               outlier.shape = 1,
+               width = 0.6) +
+  stat_boxplot(geom = "errorbar",
+               width = 0.2,
+               color = "black") +
+  labs(title = "Boxplot con Error Bar: Voti di Ammissione per Successo Accademico",
+       x = "Successo Accademico (Target)",
+       y = "Voto di Ammissione") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
+
+```
+
