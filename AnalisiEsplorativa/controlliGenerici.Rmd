@@ -10,6 +10,9 @@ In questo documento vengono effettuata controlli ed operazioni generiche sull`in
 library(ggplot2)
 library(dplyr)
 library(here)
+library(corrplot)
+library(ggplot2)
+library(reshape2)
 ```
 
 
@@ -81,3 +84,32 @@ ggplot(target_counts, aes(x = "", y = count, fill = Target)) +
   geom_text(aes(label = label), position = position_stack(vjust = 0.5))
 ```
 Osservando il grafico possiamo notare che il dataset è fortemente sbilanciato: la classe Graduate rappresenta il 49.9% del dataset mentre la classe Enrolled rappresenta solamente il 17.9%.
+
+
+## Correlazione tra Feature Quantitative
+```{r}
+numeric_features <- c("Previous_qualification_(grade)", "Admission_grade", "Curricular_units_1st_sem_(credited)", "Curricular_units_1st_sem_(enrolled)","Curricular_units_1st_sem_(evaluations)", "Curricular_units_1st_sem_(approved)","Curricular_units_1st_sem_(grade)", "Curricular_units_1st_sem_(without_evaluations)","Curricular_units_2nd_sem_(credited)", "Curricular_units_2nd_sem_(enrolled)","Curricular_units_2nd_sem_(evaluations)", "Curricular_units_2nd_sem_(approved)","Curricular_units_2nd_sem_(grade)", "Curricular_units_2nd_sem_(without_evaluations)", "Unemployment_rate", "Inflation_rate", "GDP")
+
+numeric_data <- data[, numeric_features]
+
+correlation_matrix <- cor(numeric_data)
+
+#Corrplot
+pdf("correlation_plot.pdf", width = 8, height = 8)
+corrplot(correlation_matrix, method = "color", type = "upper",
+         tl.col = "black", tl.srt = 45, diag = FALSE,
+         addCoef.col = "black", number.cex = 0.3, tl.cex = 0.4)
+
+dev.off()
+
+#Scatterplot
+pdf("scatterplot_matrix.pdf", width = 12, height = 12)
+pairs(numeric_data, 
+      main = "Scatterplot Matrix",
+      pch = 19, 
+      cex = 0.5, 
+      col = rgb(0.1, 0.2, 0.5, 0.5))
+
+dev.off()
+```
+
