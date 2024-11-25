@@ -24,6 +24,28 @@ Valutare di separare i dati dello studente (mothers qualification, ecc...) da qu
 library(ggplot2)
 library(dplyr)
 library(here)
+
+# Funzione per Calcolare la Frequenza Assoluta e Massima
+calculate_frequency <- function(data, column) {
+  freq <- table(data[[column]])
+  return(list(freq = freq, max_freq = max(freq)))
+}
+
+# Funzione per creare Barplot
+create_barplot <- function(freq, max_freq, main_title, xlab="", ylab, col_palette = rainbow) {
+  
+  # Creazione Barplot
+  bp <- barplot(freq, 
+                main = main_title,
+                xlab = xlab,
+                ylab = ylab,
+                ylim = c(0, max_freq * 1.3),
+                col = col_palette(length(freq)),
+                space = 1)
+  
+  # Aggiunta Labels Freuquenza
+  text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+}
 ```
 
 ## Caricamento del Dataset
@@ -46,25 +68,66 @@ freq_mother_qual <- table(data$`Mothers_qualification`)
 max_freq_mother_qual <- max(freq_mother_qual)
 num_categories_mother_qual <- length(freq_mother_qual)
 
-# Imposta i margini per lasciare più spazio alle etichette in basso
+# Margini
 par(mar = c(8, 4, 4, 2))
 
-# Crea il grafico a barre per Mother's Qualification usando gli ID come etichette
+# Barplot Qualifica Madre
 bp_mother_qual <- barplot(freq_mother_qual, main = "Distribuzione della Qualifica della Madre", 
                           xlab = "ID della Qualifica", 
                           ylab = "Frequenza",
                           ylim = c(0, max_freq_mother_qual * 1.2),
                           col = rainbow(num_categories_mother_qual),
-                          names.arg = names(freq_mother_qual),  # Usa gli ID come etichette
-                          cex.names = 0.8, las = 2)  # Ruota e riduce le dimensioni delle etichette
+                          names.arg = names(freq_mother_qual),
+                          cex.names = 0.8, las = 2)
 
-# Aggiungi le frequenze assolute sopra ogni barra
 text(x = bp_mother_qual, y = freq_mother_qual, labels = freq_mother_qual, pos = 3, cex = 0.8, col = "black")
-
 
 ```
 
 Valutare di accorpare le qualifiche in categorie più ampie (Istruzione Primaria e di Base, Istruzione Secondaria, ...)
+
+```{r}
+# Calcola la frequenza relativa
+freq_table <- prop.table(table(data$Mothers_qualification)) * 100
+
+# Sostituisci le categorie a bassa frequenza con "Altro"
+low_freq_categories <- names(freq_table[freq_table < 1])
+
+data$Mothers_qualification_grouped <- ifelse(data$Mothers_qualification %in% low_freq_categories, 
+                                        "Altro", 
+                                        as.character(data$Mothers_qualification))
+
+# Ordinamento Categorie
+numeric_categories <- sort(as.numeric(setdiff(unique(data$Mothers_qualification_grouped), "Altro")))
+data$Mothers_qualification_grouped <- factor(data$Mothers_qualification_grouped, 
+                                        levels = c(as.character(numeric_categories), "Altro"))
+
+# Tabella di contingenza
+target_MotherQual_table <- table(data$Target, data$Mothers_qualification_grouped)
+
+
+target_MotherQual_relative <- prop.table(target_MotherQual_table, margin = 2) * 100
+max_percent <- max(target_MotherQual_relative)
+
+# Barplot ApplicationMode/Target
+bp_relative <- barplot(target_MotherQual_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Qualifica della Madre",
+                       xlab = "Codice Qualifica", 
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"), 
+                       ylim = c(0, max_percent * 1.2),
+                       las = 1)
+
+# Aggiungi la legenda
+legend("top", inset = c(0, -0.05), 
+       legend = rownames(target_MotherQual_relative), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+
+```
+
 
 ## Qualifica del padre
 ```{r}
@@ -92,6 +155,49 @@ text(x = bp_father_qual, y = freq_father_qual, labels = freq_father_qual, pos = 
 
 Anche qui, valutare di accorpare le qualifiche in categorie più ampie (Istruzione Primaria e di Base, Istruzione Secondaria, ...)
 
+```{r}
+# Calcola la frequenza relativa
+freq_table <- prop.table(table(data$Fathers_qualification)) * 100
+
+# Sostituisci le categorie a bassa frequenza con "Altro"
+low_freq_categories <- names(freq_table[freq_table < 1])
+
+data$Father_qualification_grouped <- ifelse(data$Fathers_qualification %in% low_freq_categories, 
+                                        "Altro", 
+                                        as.character(data$Fathers_qualification))
+
+# Ordinamento Categorie
+numeric_categories <- sort(as.numeric(setdiff(unique(data$Father_qualification_grouped), "Altro")))
+data$Father_qualification_grouped <- factor(data$Father_qualification_grouped, 
+                                        levels = c(as.character(numeric_categories), "Altro"))
+
+# Tabella di contingenza
+target_FatherQual_table <- table(data$Target, data$Father_qualification_grouped)
+
+
+target_FatherQual_relative <- prop.table(target_FatherQual_table, margin = 2) * 100
+max_percent <- max(target_FatherQual_relative)
+
+# Barplot ApplicationMode/Target
+bp_relative <- barplot(target_FatherQual_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Qualifica del Padre",
+                       xlab = "Codice Qualifica", 
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"), 
+                       ylim = c(0, max_percent * 1.2),
+                       las = 1)
+
+# Aggiungi la legenda
+legend("top", inset = c(0, -0.05), 
+       legend = rownames(target_FatherQual_relative), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+
+```
+
+
 ## Occupazione della madre
 
 ```{r}
@@ -116,6 +222,49 @@ bp_mother_occ <- barplot(freq_mother_occ, main = "Distribuzione della Occupazion
 
 Valutare di accorpare i tipi di occupazione in categorie più ampie (Studenti, Impiegati e Personale Amministrativo, Lavoratori nei Servizi e nella Sicurezza, ...)
 
+```{r}
+# Calcola la frequenza relativa
+freq_table <- prop.table(table(data$Mothers_occupation)) * 100
+
+# Sostituisci le categorie a bassa frequenza con "Altro"
+low_freq_categories <- names(freq_table[freq_table < 1])
+
+data$Mothers_occupation_grouped <- ifelse(data$Mothers_occupation %in% low_freq_categories, 
+                                        "Altro", 
+                                        as.character(data$Mothers_occupation))
+
+# Ordinamento Categorie
+numeric_categories <- sort(as.numeric(setdiff(unique(data$Mothers_occupation_grouped), "Altro")))
+data$Mothers_occupation_grouped <- factor(data$Mothers_occupation_grouped, 
+                                        levels = c(as.character(numeric_categories), "Altro"))
+
+# Tabella di contingenza
+target_MothersOccupation_table <- table(data$Target, data$Mothers_occupation_grouped)
+
+
+target_MothersOccupation_relative <- prop.table(target_MothersOccupation_table, margin = 2) * 100
+max_percent <- max(target_MothersOccupation_relative)
+
+# Barplot ApplicationMode/Target
+bp_relative <- barplot(target_MothersOccupation_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Occupazione della Madre",
+                       xlab = "Codice Occupazione", 
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"), 
+                       ylim = c(0, max_percent * 1.2),
+                       las = 1)
+
+# Aggiungi la legenda
+legend("top", inset = c(0, -0.05), 
+       legend = rownames(target_MothersOccupation_relative), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+
+```
+
+
 ## Occupazione del padre
 ```{r}
 # Crea la tabella di frequenza per Father's Occupation
@@ -139,85 +288,221 @@ bp_father_occ <- barplot(freq_father_occ, main = "Distribuzione della Occupazion
 
 Anche qui, valutare di accorpare i tipi di occupazione in categorie più ampie (Studenti, Impiegati e Personale Amministrativo, Lavoratori nei Servizi e nella Sicurezza, ...)
 
+```{r}
+# Calcola la frequenza relativa
+freq_table <- prop.table(table(data$Fathers_occupation)) * 100
+
+# Sostituisci le categorie a bassa frequenza con "Altro"
+low_freq_categories <- names(freq_table[freq_table < 1])
+
+data$Fathers_occupation_grouped <- ifelse(data$Fathers_occupation %in% low_freq_categories, 
+                                        "Altro", 
+                                        as.character(data$Fathers_occupation))
+
+# Ordinamento Categorie
+numeric_categories <- sort(as.numeric(setdiff(unique(data$Fathers_occupation_grouped), "Altro")))
+data$Fathers_occupation_grouped <- factor(data$Fathers_occupation_grouped, 
+                                        levels = c(as.character(numeric_categories), "Altro"))
+
+# Tabella di contingenza
+target_FathersOccupation_table <- table(data$Target, data$Fathers_occupation_grouped)
+
+
+target_FathersOccupation_relative <- prop.table(target_FathersOccupation_table, margin = 2) * 100
+max_percent <- max(target_FathersOccupation_relative)
+
+# Barplot ApplicationMode/Target
+bp_relative <- barplot(target_FathersOccupation_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Occupazione del Padre",
+                       xlab = "Codice Occupazione", 
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"), 
+                       ylim = c(0, max_percent * 1.2),
+                       las = 1)
+
+# Aggiungi la legenda
+legend("top", inset = c(0, -0.05), 
+       legend = rownames(target_FathersOccupation_relative), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+
+```
+
+
 ## Borsista 
 ```{r}
-# Assicurati che Scholarship Holder abbia i livelli e le etichette corretti
-data$`Scholarship_holder` <- factor(data$`Scholarship_holder`, levels = c(0, 1), labels = c("Non Borsista", "Borsista"))
+# Label
+data$`Scholarship_holder` <- factor(data$`Scholarship_holder`, levels = c(0, 1), labels = c("Non Borsisti", "Borsisti"))
 
-# Calcola la distribuzione congiunta tra Target e Scholarship Holder
-target_scholarship_table <- table(data$Target, data$Scholarship_holder)
+#Barplot Studenti Borsisti
+freq_data <- calculate_frequency(data, "Scholarship_holder")
+app_mode_bp <- create_barplot(freq_data$freq,
+                              freq_data$max_freq,
+                              main_title = "Distribuzione Studenti Borsisti",
+                              ylab = "Frequenza Assoluta"
+)
+```
 
-# Calcola la frequenza assoluta di Scholarship Holder
-scholarship_totals <- colSums(target_scholarship_table)
+```{r}
+# Tabella di contingenza
+target_Scholarship_holder_table <- table(data$Target, data$`Scholarship_holder`)
 
-# Crea il grafico a barre stacked
-bp <- barplot(target_scholarship_table, main = "Distribuzione della variabile Target rispetto allo status di Borsista",
-        ylab = "Frequenza Assoluta", 
-        col = c("#FF6A6A", "#32CD32", "#6495ED"),  # Colori per Target (Dropout, Enrolled, Graduated)
-        width = 0.7,
-        ylim = c(0, max(scholarship_totals) * 1.5),
-        names.arg = c("Non Borsista", "Borsista"))  # Etichette personalizzate per l'asse X
+# Calcola la frequenza relativa in percentuale
+target_Scholarship_holder_relative <- prop.table(target_Scholarship_holder_table, margin = 2) * 100
+max_percent <- max(target_Scholarship_holder_relative)
 
-# Aggiungi una legenda per la variabile Target
-legend("topright", legend = c("Dropout", "Enrolled", "Graduated"), fill = c("#FF6A6A", "#32CD32", "#6495ED"))
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_Scholarship_holder_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Studenti Borsisti",
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"),
+                       ylim = c(0, max_percent * 1.2))
 
-# Aggiungi le frequenze assolute sopra ciascuna barra
-text(x = bp, y = scholarship_totals, labels = scholarship_totals, pos = 3, cex = 1, col = "black")
+# Aggiungi la legenda 
+legend("top", inset = c(0, 0), 
+       legend = c("Dropout", "Enrolled", "Graduate"), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+# Aggiungi i valori percentuali 
+for (i in seq_len(ncol(target_Scholarship_holder_relative))) {
+  text(x = bp_relative[, i], 
+       y = target_Scholarship_holder_relative[, i], 
+       labels = paste0(round(target_Scholarship_holder_relative[, i], 1), "%"), 
+       pos = 3, cex = 0.8, col = "black")
+}
 
 ```
+```{r}
+# Tabella di contingenza
+target_Scholarship_holder_table <- table(data$Target, data$`Scholarship_holder`)
+
+# Calcola la frequenza relativa in percentuale
+target_Scholarship_holder_relative <- prop.table(target_Scholarship_holder_table, margin = 2) * 100
+max_percent <- max(target_Scholarship_holder_relative)
+
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_Scholarship_holder_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Studenti Borsisti",
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"),
+                       ylim = c(0, max_percent * 1.2))
+
+# Aggiungi la legenda 
+legend("top", inset = c(0, 0), 
+       legend = c("Dropout", "Enrolled", "Graduate"), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+# Aggiungi i valori percentuali 
+for (i in seq_len(ncol(target_Scholarship_holder_relative))) {
+  text(x = bp_relative[, i], 
+       y = target_Scholarship_holder_relative[, i], 
+       labels = paste0(round(target_Scholarship_holder_relative[, i], 1), "%"), 
+       pos = 3, cex = 0.8, col = "black")
+}
+```
+
+
 ## Debitore
 ```{r}
-# Assicurati che Debtor abbia i livelli e le etichette corretti
+# Label
 data$`Debtor` <- factor(data$`Debtor`, levels = c(0, 1), labels = c("Non Debitore", "Debitore"))
 
-# Calcola la distribuzione congiunta tra Target e Debtor
-target_debtor_table <- table(data$Target, data$Debtor)
-
-# Calcola la frequenza assoluta di Debtor
-debtor_totals <- colSums(target_debtor_table)
-
-# Crea il grafico a barre stacked
-bp <- barplot(target_debtor_table, main = "Distribuzione della variabile Target rispetto allo status di Debitore",
-        ylab = "Frequenza Assoluta", 
-        col = c("#FF6A6A", "#32CD32", "#6495ED"),  # Colori per Target (Dropout, Enrolled, Graduated)
-        width = 0.7,
-        ylim = c(0, max(debtor_totals) * 1.2))
-
-# Aggiungi una legenda per la variabile Target
-legend("topright", legend = c("Dropout", "Enrolled", "Graduated"), fill = c("#FF6A6A", "#32CD32", "#6495ED"))
-
-# Aggiungi le frequenze assolute sopra ciascuna barra
-text(x = bp, y = debtor_totals, labels = debtor_totals, pos = 3, cex = 1, col = "black")
+#Barplot Studenti Debitori
+freq_data <- calculate_frequency(data, "Debtor")
+app_mode_bp <- create_barplot(freq_data$freq,
+                              freq_data$max_freq,
+                              main_title = "Distribuzione Studenti Debitori",
+                              ylab = "Frequenza Assoluta"
+)
 
 ```
+```{r}
+# Tabella di contingenza
+target_Debtor_table <- table(data$Target, data$`Debtor`)
+
+# Calcola la frequenza relativa in percentuale
+target_Debtor_relative <- prop.table(target_Debtor_table, margin = 2) * 100
+max_percent <- max(target_Debtor_relative)
+
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_Debtor_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Studenti Debitori",
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"),
+                       ylim = c(0, max_percent * 1.2))
+
+# Aggiungi la legenda 
+legend("top", inset = c(0, -0.1), 
+       legend = c("Dropout", "Enrolled", "Graduate"), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+# Aggiungi i valori percentuali 
+for (i in seq_len(ncol(target_Debtor_relative))) {
+  text(x = bp_relative[, i], 
+       y = target_Debtor_relative[, i], 
+       labels = paste0(round(target_Debtor_relative[, i], 1), "%"), 
+       pos = 3, cex = 0.8, col = "black")
+}
+```
+
+
 ## Tasse universitarie in regola
 ```{r}
-# Assicurati che Tuition_fees_up_to_date abbia i livelli e le etichette corretti
+# Label
 data$`Tuition_fees_up_to_date` <- factor(data$`Tuition_fees_up_to_date`, 
                                          levels = c(1, 0), 
                                          labels = c("Tasse in regola", "Tasse non in regola"))
 
-# Calcola la distribuzione congiunta tra Target e Tuition fees up to date
-target_fees_table <- table(data$Target, data$Tuition_fees_up_to_date)
 
-# Calcola la frequenza assoluta di Tuition fees up to date
-fees_totals <- colSums(target_fees_table)
-
-# Crea il grafico a barre stacked
-bp_fees <- barplot(target_fees_table, 
-                   main = "Distribuzione della variabile Target rispetto alle Tasse Universitarie",
-                   ylab = "Frequenza Assoluta", 
-                   col = c("#FF6A6A", "#32CD32", "#6495ED"),  # Colori per Target (Dropout, Enrolled, Graduated)
-                   width = 0.7,
-                   ylim = c(0, max(fees_totals) * 1.2))
-
-# Aggiungi una legenda per la variabile Target
-legend("topright", legend = c("Dropout", "Enrolled", "Graduated"), fill = c("#FF6A6A", "#32CD32", "#6495ED"))
-
-# Aggiungi le frequenze assolute sopra ciascuna barra
-text(x = bp_fees, y = fees_totals, labels = fees_totals, pos = 3, cex = 1, col = "black")
+#Barplot Tasse In Regola
+freq_data <- calculate_frequency(data, "Tuition_fees_up_to_date")
+app_mode_bp <- create_barplot(freq_data$freq,
+                              freq_data$max_freq,
+                              main_title = "Distribuzione degli Studenti con Tasse in Regola",
+                              ylab = "Frequenza Assoluta"
+)
 
 ```
+```{r}
+# Tabella di contingenza
+target_fees_table <- table(data$Target, data$`Tuition_fees_up_to_date`)
+
+# Calcola la frequenza relativa in percentuale
+target_fees_relative <- prop.table(target_fees_table, margin = 2) * 100
+max_percent <- max(target_fees_relative)
+
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_fees_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target rispetto alle Tasse in Regola",
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"),
+                       ylim = c(0, max_percent * 1.2))
+
+# Aggiungi la legenda 
+legend("top", inset = c(0, -0.1), 
+       legend = c("Dropout", "Enrolled", "Graduate"), 
+       fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
+       xpd = TRUE, horiz = TRUE)
+
+# Aggiungi i valori percentuali 
+for (i in seq_len(ncol(target_fees_relative))) {
+  text(x = bp_relative[, i], 
+       y = target_fees_relative[, i], 
+       labels = paste0(round(target_fees_relative[, i], 1), "%"), 
+       pos = 3, cex = 0.8, col = "black")
+}
+```
+
+
 ## Tasso di disoccupazione
 ```{r}
 # Calcola gli indici di sintesi per "Unemployment_rate"
@@ -241,40 +526,14 @@ summary_stats_unemployment
 ```
 
 ```{r}
-# Calcola Media, Mediana e Moda per Unemployment_rate
-mean_unemployment <- summary_stats_unemployment$Media
-median_unemployment <- summary_stats_unemployment$Mediana
-mode_unemployment <- summary_stats_unemployment$Moda
-
 # Crea l'istogramma della distribuzione
 ggplot(data, aes(x = Unemployment_rate)) +
   geom_histogram(binwidth = 0.8, color = "black", fill = "lightblue") +
-  annotate("segment", x = mean_unemployment, xend = mean_unemployment, y = 0, 
-           yend = max(table(data$Unemployment_rate)) * 0.6, 
-           color = "red", linetype = "dashed", linewidth = 1) +
-  annotate("segment", x = median_unemployment, xend = median_unemployment, y = 0, 
-           yend = max(table(data$Unemployment_rate)) * 0.75, 
-           color = "blue", linetype = "dashed", linewidth = 1) +
-  annotate("segment", x = mode_unemployment, xend = mode_unemployment, y = 0, 
-           yend = max(table(data$Unemployment_rate)) * 0.9, 
-           color = "darkgreen", linetype = "dashed", linewidth = 1) +
   labs(title = "Distribuzione del Tasso di Disoccupazione",
        x = "Tasso di Disoccupazione (%)",
        y = "Frequenza") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  annotate("text", x = mode_unemployment, 
-           y = max(table(data$Unemployment_rate)) * 0.9, 
-           label = paste("Moda =", round(mode_unemployment, 1)), 
-           color = "darkgreen", hjust = -0.1, vjust = -0.5) +
-  annotate("text", x = median_unemployment, 
-           y = max(table(data$Unemployment_rate)) * 0.75, 
-           label = paste("Mediana =", round(median_unemployment, 1)), 
-           color = "blue", hjust = -0.1, vjust = -0.5) +
-  annotate("text", x = mean_unemployment, 
-           y = max(table(data$Unemployment_rate)) * 0.6, 
-           label = paste("Media =", round(mean_unemployment, 1)), 
-           color = "red", hjust = -0.1, vjust = -0.5)
+  theme(plot.title = element_text(hjust = 0.5))
 
 ```
 
@@ -294,6 +553,27 @@ ggplot(data, aes(x = Unemployment_rate, y = "")) +
         axis.ticks.y = element_blank(),
         plot.title = element_text(hjust = 0.5))
 
+```
+```{r}
+# BoxPlot Tasso di Disoccupazione suddivisi per Target
+ggplot(data, aes(x = Target, y = Unemployment_rate, fill = Target)) +
+  geom_boxplot(notch = TRUE,
+               outlier.color = "darkblue",
+               outlier.shape = 1,
+               width = 0.6) +
+  stat_boxplot(geom = "errorbar",
+               width = 0.2,
+               color = "black") +
+  labs(title = "Tasso di Disoccupazione per Categorie Target",
+       x = "Target",
+       y = "Tasso di Disoccupazione") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
+
+```
+```{r}
+sort(unique(data$Unemployment_rate))
 ```
 
 
@@ -320,40 +600,14 @@ summary_stats_inflation
 ```
 
 ```{r}
-# Calcola Media, Mediana e Moda per Inflation_rate
-mean_inflation <- summary_stats_inflation$Media
-median_inflation <- summary_stats_inflation$Mediana
-mode_inflation <- summary_stats_inflation$Moda
-
 # Crea l'istogramma della distribuzione
 ggplot(data, aes(x = Inflation_rate)) +
   geom_histogram(binwidth = 0.5, color = "black", fill = "lightblue") +
-  annotate("segment", x = mean_inflation, xend = mean_inflation, y = 0, 
-           yend = max(table(data$Inflation_rate)) * 0.6, 
-           color = "red", linetype = "dashed", linewidth = 1) +
-  annotate("segment", x = median_inflation, xend = median_inflation, y = 0, 
-           yend = max(table(data$Inflation_rate)) * 0.75, 
-           color = "blue", linetype = "dashed", linewidth = 1) +
-  annotate("segment", x = mode_inflation, xend = mode_inflation, y = 0, 
-           yend = max(table(data$Inflation_rate)) * 0.9, 
-           color = "darkgreen", linetype = "dashed", linewidth = 1) +
   labs(title = "Distribuzione del Tasso di Inflazione",
        x = "Tasso di Inflazione (%)",
        y = "Frequenza") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  annotate("text", x = mode_inflation, 
-           y = max(table(data$Inflation_rate)) * 0.9, 
-           label = paste("Moda =", round(mode_inflation, 1)), 
-           color = "darkgreen", hjust = -0.1, vjust = -0.5) +
-  annotate("text", x = median_inflation, 
-           y = max(table(data$Inflation_rate)) * 0.75, 
-           label = paste("Mediana =", round(median_inflation, 1)), 
-           color = "blue", hjust = -0.1, vjust = -0.5) +
-  annotate("text", x = mean_inflation, 
-           y = max(table(data$Inflation_rate)) * 0.6, 
-           label = paste("Media =", round(mean_inflation, 1)), 
-           color = "red", hjust = -0.1, vjust = -0.5)
+  theme(plot.title = element_text(hjust = 0.5))
 
 ```
 Anche qui, valutare se trattarla come discreta (utilizzare barplot in tal caso)
@@ -373,6 +627,29 @@ ggplot(data, aes(x = Inflation_rate, y = "")) +
         plot.title = element_text(hjust = 0.5))
 
 ```
+```{r}
+# BoxPlot Tasso di Inflazione suddivisi per Target
+ggplot(data, aes(x = Target, y = Inflation_rate, fill = Target)) +
+  geom_boxplot(notch = TRUE,
+               outlier.color = "darkblue",
+               outlier.shape = 1,
+               width = 0.6) +
+  stat_boxplot(geom = "errorbar",
+               width = 0.2,
+               color = "black") +
+  labs(title = "Tasso di Inflazione per Categorie Target",
+       x = "Target",
+       y = "Tasso di Inflazione") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
+
+```
+```{r}
+sort(unique(data$Inflation_rate))
+```
+
+
 ## PIL
 ```{r}
 # Calcola gli indici di sintesi per "GDP"
@@ -396,40 +673,14 @@ summary_stats_gdp
 ```
 
 ```{r}
-# Calcola Media, Mediana e Moda per GDP
-mean_gdp <- summary_stats_gdp$Media
-median_gdp <- summary_stats_gdp$Mediana
-mode_gdp <- summary_stats_gdp$Moda
-
 # Crea l'istogramma della distribuzione
 ggplot(data, aes(x = GDP)) +
   geom_histogram(binwidth = 0.5, color = "black", fill = "lightblue") +
-  annotate("segment", x = mean_gdp, xend = mean_gdp, y = 0, 
-           yend = max(table(data$GDP)) * 0.6, 
-           color = "red", linetype = "dashed", linewidth = 1) +
-  annotate("segment", x = median_gdp, xend = median_gdp, y = 0, 
-           yend = max(table(data$GDP)) * 0.75, 
-           color = "blue", linetype = "dashed", linewidth = 1) +
-  annotate("segment", x = mode_gdp, xend = mode_gdp, y = 0, 
-           yend = max(table(data$GDP)) * 0.9, 
-           color = "darkgreen", linetype = "dashed", linewidth = 1) +
   labs(title = "Distribuzione del PIL",
        x = "PIL (Prodotto Interno Lordo)",
        y = "Frequenza") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  annotate("text", x = mode_gdp, 
-           y = max(table(data$GDP)) * 0.9, 
-           label = paste("Moda =", round(mode_gdp, 1)), 
-           color = "darkgreen", hjust = -0.1, vjust = -0.5) +
-  annotate("text", x = median_gdp, 
-           y = max(table(data$GDP)) * 0.75, 
-           label = paste("Mediana =", round(median_gdp, 1)), 
-           color = "blue", hjust = -0.1, vjust = -0.5) +
-  annotate("text", x = mean_gdp, 
-           y = max(table(data$GDP)) * 0.6, 
-           label = paste("Media =", round(mean_gdp, 1)), 
-           color = "red", hjust = -0.1, vjust = -0.5)
+  theme(plot.title = element_text(hjust = 0.5))
 
 ```
 
@@ -451,7 +702,27 @@ ggplot(data, aes(x = GDP, y = "")) +
 
 
 
+```{r}
+# BoxPlot PIL suddivisi per Target
+ggplot(data, aes(x = Target, y = GDP, fill = Target)) +
+  geom_boxplot(notch = TRUE,
+               outlier.color = "darkblue",
+               outlier.shape = 1,
+               width = 0.6) +
+  stat_boxplot(geom = "errorbar",
+               width = 0.2,
+               color = "black") +
+  labs(title = "PIL per Categorie Target",
+       x = "Target",
+       y = "PIL") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
 
+```
+```{r}
+sort(unique(data$GDP))
+```
 
 
 

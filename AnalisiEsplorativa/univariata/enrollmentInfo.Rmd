@@ -9,6 +9,28 @@ output: html_notebook
 library(ggplot2)
 library(dplyr)
 library(here)
+
+# Funzione per Calcolare la Frequenza Assoluta e Massima
+calculate_frequency <- function(data, column) {
+  freq <- table(data[[column]])
+  return(list(freq = freq, max_freq = max(freq)))
+}
+
+# Funzione per creare Barplot
+create_barplot <- function(freq, max_freq, main_title, xlab="", ylab, col_palette = rainbow) {
+  
+  # Creazione Barplot
+  bp <- barplot(freq, 
+                main = main_title,
+                xlab = xlab,
+                ylab = ylab,
+                ylim = c(0, max_freq * 1.2),
+                col = col_palette(length(freq)),
+                space = 1)
+  
+  # Aggiunta Labels Freuquenza
+  text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+}
 ```
 
 ## Caricamento del Dataset
@@ -27,20 +49,14 @@ if(file.exists(here("dataset/dataMod.csv"))){
 
 ## Modalità di Immatricolazione
 ```{r}
-# Calcola la frequenza massima
-freq <- table(data$`Application_mode`)
-max_freq <- max(freq)
-
-# Crea il BarPlot
-bp <- barplot(freq, main = "Distribuzione delle Modalità di Immatricolazione", 
-              xlab = "Modalità di Immatricolazione", 
-              ylab = "Frequenza Assoluta",
-              ylim = c(0, max_freq * 1.2),
-              col = rainbow(length(freq)),
-              space = 1)
-
-text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
-
+#Barplot Modalità di Immatricolazione
+freq_data <- calculate_frequency(data, "Application_mode")
+app_mode_bp <- create_barplot(freq_data$freq,
+                              freq_data$max_freq,
+                              main_title = "Distribuzione delle Modalità di Immatricolazione",
+                              xlab = "Modalità di Immatricolazione",
+                              ylab = "Frequenza Assoluta"
+)
 
 ```
 ```{r}
@@ -66,7 +82,7 @@ target_application_table <- table(data$Target, data$Application_mode_grouped)
 target_application_relative <- prop.table(target_application_table, margin = 2) * 100
 max_percent <- max(target_application_relative)
 
-# Crea il barplot con barre affiancate per ciascun gruppo
+# Barplot ApplicationMode/Target
 bp_relative <- barplot(target_application_relative, 
                        beside = TRUE, 
                        main = "Distribuzione della Variabile Target per Application Mode",
@@ -87,20 +103,14 @@ legend("top", inset = c(0, 0),
 
 ## Application Order
 ```{r}
-# Calcola la frequenza massima
-freq <- table(data$`Application_order`)
-max_freq <- max(freq)
-
-# Crea il BarPlot
-bp <- barplot(freq, main = "Distribuzione dell`ordine di immatricolazione", 
-              xlab = "Ordine di Immatricolazione", 
-              ylab = "Frequenza",
-              ylim = c(0, max_freq * 1.2),
-              col = rainbow(length(freq)),
-              space = 1)
-
-# Aggiungi le frequenze
-text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+#Barplot Ordine di Immatricolazione
+freq_data <- calculate_frequency(data, "Application_order")
+app_ord_bp <- create_barplot(freq_data$freq,
+                              freq_data$max_freq,
+                              main_title = "Distribuzione dell`Ordine di Immatricolazione",
+                              xlab = "Ordine di Immatricolazione",
+                              ylab = "Frequenza Assoluta"
+)
 ```
 ```{r}
 # Estrai le righe in cui Application Order è uguale a 0 o 9
@@ -143,18 +153,14 @@ legend("top", inset = c(0, 0),
 
 ## Course
 ```{r}
-# Distribuzione dei Corsi di Laurea
-freq <- table(data$`Course`)
-max_freq <- max(freq)
-bp <- barplot(freq, main = "Distribuzione dei Corsi di Laurea", 
-              xlab = "Corso di Laurea", 
-              ylab = "Frequenza Assoluta",
-              ylim = c(0, max_freq * 1.2),
-              col = rainbow(length(freq)),
-              space = 1,
-              las = 2)
-
-text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+#Barplot Corsi di Laurea
+freq_data <- calculate_frequency(data, "Course")
+app_ord_bp <- create_barplot(freq_data$freq,
+                              freq_data$max_freq,
+                              main_title = "Distribuzione dei Corsi di Laurea",
+                              xlab = "Codice Corso",
+                              ylab = "Frequenza Assoluta"
+)
 ```
 ```{r}
 # Tabella di contingenza
@@ -189,20 +195,13 @@ legend("top", inset = c(0, -0.07),
 # Label
 data$`Daytime/evening_attendance` <- factor(data$`Daytime/evening_attendance`, levels = c(0, 1), labels = c("Evening", "Daytime"))
 
-# Calcola la frequenza assoluta
-freq <- table(data$`Daytime/evening_attendance`)
-max_freq <- max(freq)
-
-# Crea il barplot per le frequenze assolute
-bp <- barplot(freq, 
-              main = "Frequenza alle Lezioni", 
-              ylab = "Frequenza Assoluta",
-              ylim = c(0, max_freq * 1.2),
-              col = rainbow(length(freq)),
-              space = 1,
-              las = 1)
-
-text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+#Barplot Frequenza Alle Lezioni
+freq_data <- calculate_frequency(data, "Daytime/evening_attendance")
+app_ord_bp <- create_barplot(freq_data$freq,
+                              freq_data$max_freq,
+                              main_title = "Distribuzione Frequenza alle Lezioni",
+                              ylab = "Frequenza Assoluta"
+)
 ```
 ```{r}
 
@@ -242,23 +241,15 @@ for (i in seq_len(ncol(target_attendance_relative))) {
 ## International
 ```{r}
 # Label
-data$International <- factor(data$International, levels = c(0, 1), labels = c("Non Erasmus", "Erasmus"))
+data$International <- factor(data$International, levels = c(0, 1), labels = c("Non Internazionali", "Internazionali"))
 
-# Calcola la frequenza assoluta
-freq <- table(data$International)
-max_freq <- max(freq)
-
-# Crea il barplot per le frequenze assolute
-bp <- barplot(freq, 
-              main = "Distribuzione Studenti Erasmus", 
-              ylab = "Frequenza Assoluta",
-              ylim = c(0, max_freq * 1.2),
-              col = rainbow(length(freq)),
-              space = 1,
-              las = 1)
-
-# Aggiungi i valori delle frequenze
-text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+#Barplot Studenti Erasmus
+freq_data <- calculate_frequency(data, "International")
+app_ord_bp <- create_barplot(freq_data$freq,
+                              freq_data$max_freq,
+                              main_title = "Distribuzione degli Studenti Internazionali",
+                              ylab = "Frequenza Assoluta"
+)
 ```
 
 ```{r}
@@ -297,61 +288,58 @@ for (i in seq_len(ncol(target_international_relative))) {
 ```{r}
 data$`Displaced` <- factor(data$`Displaced`, levels = c(0, 1), labels = c("In Sede", "Fuorisede"))
 
-# Calcola la distribuzione congiunta
+#Barplot Studenti Fuori Sede
+freq_data <- calculate_frequency(data, "Displaced")
+app_ord_bp <- create_barplot(freq_data$freq,
+                              freq_data$max_freq,
+                              main_title = "Distribuzione degli Studenti Fuori Sede",
+                              ylab = "Frequenza Assoluta"
+)
+```
+```{r}
+# Tabella di contingenza
 target_displaced_table <- table(data$Target, data$Displaced)
 
-# Calcola la frequenza assoluta
-displaced_totals <- colSums(target_displaced_table)
+# Calcola la frequenza relativa in percentuale
+target_displaced_relative <- prop.table(target_displaced_table, margin = 2) * 100
+max_percent <- max(target_displaced_relative)
 
-# Crea il grafico a barre stacked
-bp <- barplot(target_displaced_table, main = "Distribuzione Studenti Fuorisede",
-        ylab = "Frequenza Assoluta",
-        xlab = "Studenti",
-        col = c("#FF6A6A", "#32CD32", "#6495ED"),
-        width = 0.7,
-        ylim = c(0, max(displaced_totals) * 1.4))
+# Crea il barplot con barre affiancate per ciascun gruppo
+bp_relative <- barplot(target_displaced_relative, 
+                       beside = TRUE, 
+                       main = "Distribuzione della Variabile Target per Studenti Fuori Sede",
+                       ylab = "Frequenza Relativa (%)", 
+                       col = c("#FF6A6A", "#32CD32", "#6495ED"),
+                       ylim = c(0, max_percent * 1.5))
 
-# Aggiungi legenda
-legend("top", inset = c(0, -0.05), 
+# Aggiungi la legenda
+legend("top", inset = c(0, 0), 
        legend = c("Dropout", "Enrolled", "Graduate"), 
        fill = c("#FF6A6A", "#32CD32", "#6495ED"), 
        xpd = TRUE, horiz = TRUE)
 
-# Aggiungi le frequenze assolute
-text(x = bp, y = displaced_totals, labels = displaced_totals, pos = 3, cex = 1, col = "black")
-
-# Aggiungi le percentuali
-for (i in 1:ncol(target_displaced_table)) {
-  cumulative_values <- cumsum(target_displaced_table[, i])
-  
-  percentages <- round(target_displaced_table[, i] / displaced_totals[i] * 100, 1)
-  
-  text(x = bp[i], y = cumulative_values - target_displaced_table[, i] / 2,
-       labels = paste0(percentages, "%"), cex = 0.9, col = "white", font=2)
+# Aggiungi i valori percentuali
+for (i in seq_len(ncol(target_displaced_relative))) {
+  text(x = bp_relative[, i], 
+       y = target_displaced_relative[, i], 
+       labels = paste0(round(target_displaced_relative[, i], 1), "%"), 
+       pos = 3, cex = 0.8, col = "black")
 }
 ```
-
 
 ## Educational Special Needs
 ```{r}
 # Label
 data$Educational_special_needs <- factor(data$Educational_special_needs, levels = c(0, 1), labels = c("No", "Si"))
 
-# Calcola la frequenza assoluta
-freq <- table(data$Educational_special_needs)
-max_freq <- max(freq)
-
-# Crea il barplot per le frequenze assolute
-bp <- barplot(freq, 
-              main = "Distribuzione Studenti con Bisogni Educativi Speciali (BES)", 
-              ylab = "Frequenza Assoluta",
-              xlab = "Studenti BES",
-              ylim = c(0, max_freq * 1.2),
-              col = rainbow(length(freq)),
-              space = 1,
-              las = 1)
-
-text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+#Barplot Studenti BES
+freq_data <- calculate_frequency(data, "Educational_special_needs")
+app_ord_bp <- create_barplot(freq_data$freq,
+                              freq_data$max_freq,
+                              main_title = "Distribuzione degli Studenti con Bisogni Educativi Speciali (BES)",
+                              xlab = "Studenti BES",
+                              ylab = "Frequenza Assoluta"
+)
 ```
 ```{r}
 # Tabella di contingenza
@@ -387,21 +375,14 @@ for (i in seq_len(ncol(target_bse_relative))) {
 
 ## Previous Qualification
 ```{r}
-# Calcola la frequenza massima
-freq <- table(data$`Previous_qualification`)
-max_freq <- max(freq)
-
-# Crea il BarPlot con le nuove etichette
-bp <- barplot(freq, main = "Distribuzione della Qualifica Precedente", 
-              xlab = "Tipologia di Qualifica", 
-              ylab = "Frequenza Assoluta",
-              ylim = c(0, max_freq * 1.2),
-              col = rainbow(length(freq)),
-              space = 1)
-
-text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
-
-
+#Barplot Qualifica Precedente
+freq_data <- calculate_frequency(data, "Previous_qualification")
+app_ord_bp <- create_barplot(freq_data$freq,
+                              freq_data$max_freq,
+                              main_title = "Distribuzione delle Qualifiche Precedenti",
+                              xlab = "Codice Qualifica",
+                              ylab = "Frequenza Assoluta"
+)
 ```
 ```{r}
 # Calcola la frequenza relativa
