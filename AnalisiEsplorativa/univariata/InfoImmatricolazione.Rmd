@@ -1,0 +1,174 @@
+```{r}
+# Librerie
+library(ggplot2)
+library(here)
+library(dplyr)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = TRUE)
+colnames(data)[colnames(data) == "Daytime.evening_attendance."] <- "Attendance"
+
+head(data)
+# Estrai Fattori Demografici
+columns_to_extract <- data[, c("Application_mode", "Application_order", "Course", "Attendance" ,"International", "Displaced", "Educational_special_needs", "Previous_qualification" )]
+
+columns_to_extract$Attendance <- factor(columns_to_extract$Attendance, levels = c(0, 1), labels = c("Evening", "Daytime"))
+columns_to_extract$International <- factor(columns_to_extract$International, levels = c(0, 1), labels = c("NO", "YES"))
+columns_to_extract$Displaced <- factor(columns_to_extract$Displaced, levels = c(0, 1), labels = c("NO", "YES"))
+columns_to_extract$Educational_special_needs <- factor(columns_to_extract$Educational_special_needs, levels = c(0, 1), labels = c("NO", "YES"))
+
+# Funzione per creare i Barplot
+create_barplot <- function(freq, max_freq, main_title, xlab = "", ylab = "Frequenza", col_palette = rainbow, labRotation = 1) {
+  
+  bp <- barplot(freq, 
+                main = main_title,
+                xlab = xlab,
+                ylab = ylab,
+                ylim = c(0, max_freq * 1.3),
+                col = col_palette(length(freq)),
+                space = 1,
+                las = labRotation)
+  
+  text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+}
+
+for (col in colnames(columns_to_extract)) {
+  
+  freq <- table(columns_to_extract[[col]])
+  
+  if (col == "Course" | col == "Application_mode") {
+    labRotation <- 2  # Label Verticali
+  } else {
+    labRotation <- 1  # Label Orizzontali
+  }
+  
+  cleaned_col_name <- gsub("_", " ", col)
+  
+  # Creazione del file PDF
+  pdf_filename <- paste0("Grafici/Barplot_", gsub(" ", "_", cleaned_col_name), ".pdf")
+  # pdf(pdf_filename)
+  
+  # Creazione del Barplot
+  create_barplot(freq = freq, 
+                 max_freq = max(freq), 
+                 main_title = paste("Barplot:", cleaned_col_name), 
+                 xlab = cleaned_col_name, 
+                 ylab = "Frequenza Assoluta",
+                 labRotation = labRotation)
+  
+  # dev.off()
+}
+```
+
+```{r}
+# Librerie
+library(ggplot2)
+library(dplyr)
+
+colnames(data)[colnames(data) == "Previous_qualification_.grade."] <- "Previous_qualification_grade"
+
+# Funzione per Creare Istogrammi con Densità
+create_histogram <- function(data, feature, output_dir = "Grafici") {
+  cleaned_feature_name <- gsub("_", " ", feature)
+  feature_data <- data[[feature]]
+  
+  # Salvataggio in PDF
+  # pdf(file = paste0(output_dir, "/DensityPlot_", gsub(" ", "_", cleaned_feature_name), ".pdf"))
+  
+  hist(feature_data,
+       main = paste("Density Plot:", cleaned_feature_name),
+       xlab = cleaned_feature_name,
+       ylab = "Densità",
+       xlim = c(80, 200),
+       col = "lightblue",
+       border = "darkblue",
+       breaks = seq(0, 200, by = 4),
+       freq = FALSE)
+  grid()
+  
+  dens <- density(feature_data, na.rm = TRUE)
+  lines(dens, col = "red", lwd = 2)
+  
+  # dev.off()
+}
+
+# Funzione per Creare Boxplot
+create_boxplot <- function(data, feature, output_dir = "Grafici") {
+  cleaned_feature_name <- gsub("_", " ", feature)
+  feature_data <- data[[feature]]
+  
+  if (all(is.na(feature_data))) {
+    cat("La feature", feature, "contiene solo valori NA. Boxplot non creato.\n")
+    return()
+  }
+  
+  # Creazione del Boxplot
+  p <- ggplot(data, aes(x = .data[[feature]], y = "")) +
+    geom_boxplot(fill = "lightblue", color = "darkblue", width = 0.3) +
+    labs(title = paste("Boxplot:", cleaned_feature_name),
+         x = cleaned_feature_name) +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.15) +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),   
+          axis.ticks.y = element_blank(),
+          plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2))
+  
+  # Salvataggio in PDF
+  #pdf(file = paste0(output_dir, "/Boxplot_", gsub(" ", "_", cleaned_feature_name), ".pdf"))
+  
+  print(p)
+  
+  #dev.off()
+  
+}
+
+# Funzione per Calcolare e Mostrare gli Outlier
+calculate_outliers <- function(data, feature) {
+  feature_data <- data[[feature]]
+  
+  if (all(is.na(feature_data))) {
+    cat("La feature", feature, "contiene solo valori NA. Outlier non calcolati.\n")
+    return(NULL)
+  }
+  
+  # Calcolo dei limiti e degli outlier
+  outliers <- data %>%
+    summarise(
+      Q1 = quantile(.data[[feature]], 0.25, na.rm = TRUE),
+      Q3 = quantile(.data[[feature]], 0.75, na.rm = TRUE),
+      IQR = IQR(.data[[feature]], na.rm = TRUE)
+    ) %>%
+    mutate(
+      Lower_Bound = Q1 - 1.5 * IQR,
+      Upper_Bound = Q3 + 1.5 * IQR
+    )
+  
+  lower_bound <- outliers$Lower_Bound
+  upper_bound <- outliers$Upper_Bound
+  
+  outliers_table <- data %>%
+    filter(.data[[feature]] < lower_bound | .data[[feature]] > upper_bound)
+  
+  return(outliers_table)
+}
+
+features_to_plot <- c("Previous_qualification_grade", "Admission_grade")
+
+# Creazione degli Istogrammi con Densità e Salvataggio
+for (feature in features_to_plot) {
+  stats <- calculate_summary_stats(data = data, feature = feature)
+  print(stats)
+  
+  create_histogram(data = data, feature = feature)
+  
+  create_boxplot(data = data, feature = feature)
+  
+  outliers <- calculate_outliers(data = data, feature = feature)
+  print(outliers)
+}
+
+
+
+```
+

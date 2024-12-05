@@ -1,0 +1,164 @@
+```{r}
+# Librerie
+library(here)
+library(ggplot2)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = TRUE)
+colnames(data)[colnames(data) == "Daytime.evening_attendance."] <- "Attendance"
+colnames(data)[colnames(data) == "Previous_qualification_.grade."] <- "Previous_qualification_grade"
+
+data$Application_order[data$Application_order == 0] <- 1
+data$Application_order[data$Application_order == 9] <- 6
+
+# Funzione per raggruppare categorie con bassa frequenza
+group_low_freq_categories <- function(column, threshold) {
+  column <- na.omit(column)
+  
+  freq_table <- prop.table(table(column)) * 100
+  
+  if (length(freq_table) <= 2) {
+    return(factor(column))
+  }
+  
+  low_freq_categories <- names(freq_table[freq_table < threshold])
+  
+  if (length(low_freq_categories) == 0) {
+    # Nessuna categoria con bassa frequenza
+    return(factor(column))
+  }
+  
+  grouped_column <- ifelse(column %in% low_freq_categories, 
+                           "Other", 
+                           as.character(column))
+  
+  unique_categories <- unique(grouped_column)
+  ordered_categories <- c(setdiff(sort(unique_categories), "Other"), "Other")
+  
+  return(factor(grouped_column, levels = ordered_categories))
+}
+
+# Seleziona Enrollment Info
+features_to_analyze <- c("Application_mode", "Application_order", "Course", "Attendance" ,"International", "Displaced", "Educational_special_needs", "Previous_qualification" )
+target <- "Target"
+
+low_freq_threshold <- 2
+
+# Funzione per creare Grouped Barplot
+create_grouped_barplot <- function(feature, target, data, threshold, colors) {
+  las <- 1
+  if(feature == "Course"){
+    las <- 2
+    threshold <- 0
+  }
+  
+  data[[paste0(feature, "_grouped")]] <- group_low_freq_categories(data[[feature]], threshold)
+  
+  
+  # Tabella di contingenza
+  contingency_table <- table(data[[target]], data[[paste0(feature, "_grouped")]])
+  
+  # Frequenza relativa
+  relative_freq_table <- prop.table(contingency_table, margin = 2) * 100
+  max_percent <- max(relative_freq_table)
+  
+  cleaned_feature_name <- gsub("_", " ", feature)
+  
+  pdf_filename <- paste0("Grafici/Grouped_Barplot_Target_", gsub(" ", "_", cleaned_feature_name), ".pdf")
+  
+  # Salvataggio in PDF
+  # pdf(pdf_filename)
+  
+  # Creazione del barplot
+  barplot_relative <- barplot(relative_freq_table, 
+                               beside = TRUE, 
+                               main = paste("Grouped Barplot:", cleaned_feature_name, "/", target),
+                               xlab = cleaned_feature_name, 
+                               ylab = "Frequenza Relativa (%)", 
+                               col = colors,
+                               ylim = c(0, max_percent * 1.4), # Maggiore spazio sopra le barre
+                               las = las)
+  
+  num_categories <- ncol(relative_freq_table) # Numero di categorie
+  
+  # Aggiungi percentuali sopra le barre solo se ci sono meno di 6 categorie
+  if (num_categories < 6) {
+    text_size <- ifelse(num_categories <= 3, 0.8, 0.6) # Adatta la dimensione delle label
+    
+    for (i in seq_len(nrow(relative_freq_table))) {
+      for (j in seq_len(ncol(relative_freq_table))) {
+        text(x = barplot_relative[i, j], 
+             y = relative_freq_table[i, j] + (max_percent * 0.05), # Offset aumentato
+             labels = sprintf("%.1f%%", relative_freq_table[i, j]), 
+             cex = text_size, 
+             col = "black")
+      }
+    }
+  }
+  
+  # Aggiunta della legenda
+  legend("top", inset = c(0, -0.01), 
+         legend = rownames(relative_freq_table), 
+         fill = colors, 
+         xpd = TRUE, horiz = TRUE)
+  
+  # dev.off()
+}
+
+color_palette <- c("#FF6A6A", "#32CD32", "#6495ED")
+
+# Creazione Barplot Fattori Demografici / Target
+for (feature in features_to_analyze) {
+  create_grouped_barplot(feature = feature, 
+                         target = target, 
+                         data = data, 
+                         threshold = low_freq_threshold, 
+                         colors = color_palette)
+}
+
+
+```
+
+
+```{r}
+create_boxplot <- function(feature, target, data, colors) {
+  cleaned_feature_name <- gsub("_", " ", feature)
+  
+  # Creazione del boxplot
+  p <- ggplot(data, aes_string(x = target, y = feature, fill = target)) +
+    geom_boxplot(notch = FALSE,
+                 outlier.color = "darkblue",
+                 outlier.shape = 1,
+                 width = 0.6) +
+    stat_boxplot(geom = "errorbar",
+                 width = 0.2,
+                 color = "black") +
+    labs(title = paste("Boxplot:", cleaned_feature_name, "/", target),
+         x = target,
+         y = cleaned_feature_name) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2),
+          legend.position = "none")
+  
+  pdf_filename <- paste0("Grafici/Boxplot_Target_", gsub(" ", "_", cleaned_feature_name), ".pdf")
+  pdf(pdf_filename)
+  
+  # Mostra il grafico
+  print(p)
+  
+  dev.off()
+}
+
+# Sottoinsieme di feature da analizzare
+features_to_analyze <- c("Previous_qualification_grade", "Admission_grade")
+target <- "Target"
+
+# Creazione dei Boxplot per ogni feature
+for (feature in features_to_analyze) {
+  create_boxplot(feature = feature, 
+                 target = target, 
+                 data = data, 
+                 colors = c("#FF6A6A", "#32CD32", "#6495ED"))
+}
+```
+

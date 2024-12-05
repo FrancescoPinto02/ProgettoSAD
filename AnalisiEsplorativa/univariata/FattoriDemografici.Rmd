@@ -1,0 +1,133 @@
+```{r}
+# Librerie
+library(ggplot2)
+library(here)
+library(dplyr)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Estrai Fattori Demografici
+columns_to_extract <- data[, c("Marital_status", "Nationality", "Gender")]
+columns_to_extract$Gender <- factor(columns_to_extract$Gender, levels = c(0, 1), labels = c("Female", "Male"))
+
+# Funzione per creare i Barplot
+create_barplot <- function(freq, max_freq, main_title, xlab = "", ylab = "Frequenza", col_palette = rainbow, labRotation = 1) {
+  
+  bp <- barplot(freq, 
+                main = main_title,
+                xlab = xlab,
+                ylab = ylab,
+                ylim = c(0, max_freq * 1.3),
+                col = col_palette(length(freq)),
+                space = 1,
+                las = labRotation)
+  
+  text(x = bp, y = freq, labels = freq, pos = 3, cex = 0.8, col = "black")
+}
+
+for (col in colnames(columns_to_extract)) {
+  
+  freq <- table(columns_to_extract[[col]])
+  
+  if (col == "Nationality") {
+    labRotation <- 2  # Label Verticali
+  } else {
+    labRotation <- 1  # Label Orizzontali
+  }
+  
+  cleaned_col_name <- gsub("_", " ", col)
+  
+  # Creazione del file PDF
+  pdf_filename <- paste0("Grafici/Barplot_", gsub(" ", "_", cleaned_col_name), ".pdf")
+  #pdf(pdf_filename)
+  
+  # Creazione del Barplot
+  create_barplot(freq = freq, 
+                 max_freq = max(freq), 
+                 main_title = paste("Barplot:", cleaned_col_name), 
+                 xlab = cleaned_col_name, 
+                 ylab = "Frequenza Assoluta",
+                 labRotation = labRotation)
+  
+  #dev.off()
+}
+
+```
+
+
+```{r}
+# indici di sintesi per "Age_at_enrollment"
+summary_stats <- list(
+  Media = mean(data$Age_at_enrollment, na.rm = TRUE),
+  Mediana = median(data$Age_at_enrollment, na.rm = TRUE),
+  Moda = as.numeric(names(sort(table(data$Age_at_enrollment), decreasing = TRUE)[1])),
+  Varianza = var(data$Age_at_enrollment, na.rm = TRUE),
+  Deviazione_Standard = sd(data$Age_at_enrollment, na.rm = TRUE),
+  Coefficiente_Variabilità = sd(data$Age_at_enrollment, na.rm = TRUE) / mean(data$Age_at_enrollment, na.rm = TRUE) * 100,
+  Quantile_1 = quantile(data$Age_at_enrollment, 0.25, na.rm = TRUE),
+  Quantile_3 = quantile(data$Age_at_enrollment, 0.75, na.rm = TRUE),
+  Minimo = min(data$Age_at_enrollment, na.rm = TRUE),
+  Massimo = max(data$Age_at_enrollment, na.rm = TRUE),
+  Range = max(data$Age_at_enrollment, na.rm = TRUE) - min(data$Age_at_enrollment, na.rm = TRUE),
+  IQR = IQR(data$Age_at_enrollment, na.rm = TRUE)
+)
+
+summary_stats
+```
+```{r}
+# pdf("Grafici/Histogram_Age_At_Enrollment.pdf")
+
+# Istogramma Age At Enrollment
+ggplot(data, aes(x = Age_at_enrollment)) +
+  geom_histogram(binwidth = 1, color = "black", fill = "skyblue") +
+  labs(title = "Histogram: Age At Enrollment",
+       x = "Age",
+       y = "Frequenza Assoluta") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max(table(data$Age_at_enrollment)) * 1.2))
+
+# dev.off()
+```
+
+```{r}
+# pdf("Grafici/Boxplot_Age_At_Enrollment.pdf")
+
+# boxplot di "Age_at_enrollment"
+ggplot(data, aes(x=Age_at_enrollment, y = "")) +
+  geom_boxplot(fill = "lightblue", color = "darkblue", width=0.3) +
+  labs(title = "Boxplot: Age At Enrollment",
+       x = "Age") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar",
+               width = 0.15) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),   
+        axis.ticks.y = element_blank(),
+        plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2))
+
+# dev.off()
+
+# Visualizzazione Outliers
+outliers <- data %>%
+  summarise(
+    Q1 = quantile(`Age_at_enrollment`, 0.25, na.rm = TRUE),
+    Q3 = quantile(`Age_at_enrollment`, 0.75, na.rm = TRUE),
+    IQR = IQR(`Age_at_enrollment`, na.rm = TRUE)
+  ) %>%
+  mutate(
+    Lower_Bound = Q1 - 1.5 * IQR,
+    Upper_Bound = Q3 + 1.5 * IQR
+  )
+
+lower_bound <- outliers$Lower_Bound
+upper_bound <- outliers$Upper_Bound
+
+outliers_table <- data %>%
+  filter(`Age_at_enrollment` < lower_bound |
+           `Age_at_enrollment` > upper_bound)
+
+print(outliers_table)
+
+```
