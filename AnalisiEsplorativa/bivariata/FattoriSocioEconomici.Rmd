@@ -66,7 +66,7 @@ create_grouped_barplot <- function(feature, target, data, threshold, colors) {
   pdf_filename <- paste0("Grafici/Grouped_Barplot_Target_", gsub(" ", "_", cleaned_feature_name), ".pdf")
   
   # Salvataggio in PDF
-   pdf(pdf_filename)
+  # pdf(pdf_filename)
   
   # Creazione del barplot
   barplot_relative <- barplot(relative_freq_table, 
@@ -101,7 +101,7 @@ create_grouped_barplot <- function(feature, target, data, threshold, colors) {
          fill = colors, 
          xpd = TRUE, horiz = TRUE)
   
-   dev.off()
+  # dev.off()
 }
 
 color_palette <- c("#FF6A6A", "#32CD32", "#6495ED")
@@ -141,12 +141,12 @@ create_boxplot <- function(feature, target, data, colors) {
           legend.position = "none")
   
   pdf_filename <- paste0("Grafici/Boxplot_Target_", gsub(" ", "_", cleaned_feature_name), ".pdf")
-  pdf(pdf_filename)
+  # pdf(pdf_filename)
   
   # Mostra il grafico
   print(p)
   
-  dev.off()
+  # dev.off()
 }
 
 # Sottoinsieme di feature da analizzare
