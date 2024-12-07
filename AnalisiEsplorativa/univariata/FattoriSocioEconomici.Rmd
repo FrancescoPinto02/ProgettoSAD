@@ -1,0 +1,160 @@
+```{r}
+# Librerie
+library(ggplot2)
+library(here)
+library(dplyr)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+head(data)
+# Estrai Fattori Socio-economici
+columns_to_extract <- data[, c("Mothers_qualification","Fathers_qualification", "Mothers_occupation", "Fathers_occupation", "Scholarship_holder", "Debtor", "Tuition_fees_up_to_date")]
+
+columns_to_extract$Debtor <- factor(columns_to_extract$Debtor, levels = c(0, 1), labels = c("NO", "YES"))
+columns_to_extract$Scholarship_holder <- factor(columns_to_extract$Scholarship_holder, levels = c(0, 1), labels = c("NO", "YES"))
+columns_to_extract$Tuition_fees_up_to_date <- factor(columns_to_extract$Tuition_fees_up_to_date, levels = c(0, 1), labels = c("NO", "YES"))
+
+
+# Funzione per creare i Barplot
+create_barplot <- function(freq, max_freq, main_title, xlab = "", ylab = "Frequenza Assoluta", col_palette = rainbow, labRotation = 1, catLabelSize=0.8, freqLabelSize=0.8) {
+  
+  bp <- barplot(freq, 
+                main = main_title,
+                xlab = xlab,
+                ylab = ylab,
+                ylim = c(0, max_freq * 1.3),
+                col = col_palette(length(freq)),
+                space = 1,
+                las = labRotation,
+                cex.names = catLabelSize)
+  
+  text(x = bp, y = freq, labels = freq, pos = 3, cex = freqLabelSize, col = "black")
+}
+
+for (col in colnames(columns_to_extract)) {
+  
+  freq <- table(columns_to_extract[[col]])
+  
+  if (col == "Mothers_qualification" | col == "Fathers_qualification" | col == "Mothers_occupation") {
+    labRotation <- 2  # Label Verticali
+    freqLabelSize <- 0.6
+    catLabelSize <- 0.8
+  } else if (col == "Fathers_occupation"){
+    labRotation <- 2
+    freqLabelSize <- 0.4
+    catLabelSize <- 0.6
+  }else{
+    labRotation <- 1  # Label Orizzontali
+    freqLabelSize <- 0.8
+    catLabelSize <- 0.8
+  }
+  
+  cleaned_col_name <- gsub("_", " ", col)
+  
+  # Creazione del file PDF
+  pdf_filename <- paste0("Grafici/Barplot_", gsub(" ", "_", cleaned_col_name), ".pdf")
+  # pdf(pdf_filename)
+  
+  # Creazione del Barplot
+  create_barplot(freq = freq, 
+                 max_freq = max(freq), 
+                 main_title = paste("Barplot:", cleaned_col_name), 
+                 xlab = cleaned_col_name, 
+                 ylab = "Frequenza Assoluta",
+                 labRotation = labRotation,
+                 freqLabelSize = freqLabelSize,
+                 catLabelSize = catLabelSize)
+  
+   #dev.off()
+}
+```
+
+```{r}
+# Librerie
+library(ggplot2)
+library(dplyr)
+
+# Funzione per Creare Istogrammi con Densità
+create_histogram <- function(data, feature, output_dir = "Grafici", xlim) {
+  cleaned_feature_name <- gsub("_", " ", feature)
+  feature_data <- data[[feature]]
+  
+  # Salvataggio in PDF
+  # pdf(file = paste0(output_dir, "/DensityPlot_", gsub(" ", "_", cleaned_feature_name), ".pdf"))
+  
+  hist(feature_data,
+       main = paste("Density Plot:", cleaned_feature_name),
+       xlab = cleaned_feature_name,
+       ylab = "Densità",
+       col = "lightblue",
+       border = "darkblue",
+       freq = FALSE,
+       xlim = xlim)
+  grid()
+  
+  dens <- density(feature_data, na.rm = TRUE)
+  lines(dens, col = "red", lwd = 2)
+  
+  # dev.off()
+}
+
+# Funzione per Creare Boxplot
+create_boxplot <- function(data, feature, output_dir = "Grafici") {
+  cleaned_feature_name <- gsub("_", " ", feature)
+  feature_data <- data[[feature]]
+  
+  if (all(is.na(feature_data))) {
+    cat("La feature", feature, "contiene solo valori NA. Boxplot non creato.\n")
+    return()
+  }
+  
+  # Creazione del Boxplot
+  p <- ggplot(data, aes(x = .data[[feature]], y = "")) +
+    geom_boxplot(fill = "lightblue", color = "darkblue", width = 0.3) +
+    labs(title = paste("Boxplot:", cleaned_feature_name),
+         x = cleaned_feature_name) +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.15) +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),   
+          axis.ticks.y = element_blank(),
+          plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2))
+  
+  # Salvataggio in PDF
+  #pdf(file = paste0(output_dir, "/Boxplot_", gsub(" ", "_", cleaned_feature_name), ".pdf"))
+  
+  print(p)
+  
+  #dev.off()
+  
+}
+
+
+features_to_plot <- c("Unemployment_rate", "Inflation_rate", "GDP")
+
+# Creazione degli Istogrammi con Densità e Salvataggio
+for (feature in features_to_plot) {
+  stats <- calculate_summary_stats(data = data, feature = feature)
+  print(stats)
+  
+  if(feature == "Unemployment_rate"){
+    xlim=c(6,18)
+  }
+  if(feature == "Inflation_rate"){
+    xlim=c(-1.5,4.5)
+  }
+  if(feature == "GDP"){
+    xlim=c(-5,4.5)
+  }
+  
+  
+  create_histogram(data = data, feature = feature, xlim=xlim)
+  
+  create_boxplot(data = data, feature = feature)
+  
+}
+
+
+```
+
