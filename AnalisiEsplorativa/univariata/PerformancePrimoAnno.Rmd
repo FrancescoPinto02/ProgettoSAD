@@ -1,0 +1,310 @@
+```{r}
+# Caricamento del Dataset
+library(here)
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+if (!dir.exists("Grafici")) {
+  dir.create("Grafici")
+}
+
+# Lista delle Feature
+features <- c(
+  "Curricular_units_1st_sem_(credited)",
+  "Curricular_units_1st_sem_(enrolled)",
+  "Curricular_units_1st_sem_(evaluations)",
+  "Curricular_units_1st_sem_(approved)",
+  "Curricular_units_1st_sem_(without_evaluations)"
+)
+
+# Creazione Grafici
+for (feature in features) {
+  feature_2nd <- gsub("1st", "2nd", feature)
+  
+  x_limits <- range(c(data[[feature]], data[[feature_2nd]]), na.rm = TRUE)
+  x_limits <- c(floor(x_limits[1]) - 1, ceiling(x_limits[2]) + 1)  # Aggiungi margine
+  
+  x_breaks <- seq(x_limits[1], x_limits[2], by = 1)
+  
+  hist_1st <- hist(data[[feature]], breaks = x_breaks, plot = FALSE)
+  hist_2nd <- hist(data[[feature_2nd]], breaks = x_breaks, plot = FALSE)
+  y_max <- max(c(hist_1st$counts, hist_2nd$counts))
+  
+  if (feature == "Curricular_units_1st_sem_(enrolled)") {
+    y_max <- 2000
+  }
+  
+  cleaned_feature_name <- gsub("_1st_sem_", "_", feature)
+  cleaned_feature_name <- gsub("_", " ", cleaned_feature_name)
+  pdf_filename <- paste0("Grafici/Histogram_", gsub(" ", "_", cleaned_feature_name), ".pdf")
+  
+  # Apri il file PDF
+  # pdf(pdf_filename, width = 10, height = 6)
+  
+  par(mfrow = c(1, 2))  # Due grafici affiancati
+  par(oma = c(0, 0, 2, 0))  # Margine superiore per il titolo unico
+  
+  
+  general_title <- gsub("_1st_sem_", " ", feature)
+  general_title <- gsub("_", " ", general_title)
+  
+  # Istogramma per il 1° Semestre
+  hist(data[[feature]],
+       breaks = x_breaks,
+       col = "skyblue",
+       border = "black",
+       xlim = x_limits,
+       ylim = c(0, y_max),
+       main = "1° Semestre",
+       xlab = "Curricular Units",
+       ylab = "Frequenza Assoluta")
+  
+  # Istogramma per il 2° Semestre
+  hist(data[[feature_2nd]],
+       breaks = x_breaks,
+       col = "orange",
+       border = "black",
+       xlim = x_limits,
+       ylim = c(0, y_max),
+       main = "2° Semestre",
+       xlab = "Curricular Units",
+       ylab = "Frequenza Assoluta")
+  
+  title(main = general_title, outer = TRUE, cex.main = 1.5)
+  
+  # Chiudi il file PDF
+  #dev.off()
+}
+
+```
+
+
+```{r}
+# Caricamento del Dataset
+library(here)
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+x_breaks <- seq(0, 20, by = 1)
+
+#pdf("Grafici/DensityPlot_Curricular_Units_Grade.pdf", width = 10, height = 6)
+
+par(mfrow = c(1, 2))
+par(oma = c(0, 0, 2, 0))
+
+
+
+# Istogramma e densità per il 1° Semestre
+hist(data[["Curricular_units_1st_sem_(grade)"]],
+     breaks = x_breaks,
+     col = "skyblue",
+     border = "black",
+     xlim = c(0, 20), 
+     ylim = c(0, 0.25),
+     freq = FALSE,
+     main = "1° Semestre",
+     xlab = "Grade",
+     ylab = "Densità")
+lines(density(data[["Curricular_units_1st_sem_(grade)"]], na.rm = TRUE),
+      col = "blue", lwd = 2)
+
+# Istogramma e densità per il 2° Semestre
+hist(data[["Curricular_units_2nd_sem_(grade)"]],
+     breaks = x_breaks,
+     col = "orange",
+     border = "black",
+     xlim = c(0, 20),
+     ylim = c(0, 0.25),
+     freq = FALSE,
+     main = "2° Semestre",
+     xlab = "Grade",
+     ylab = "Densità")
+lines(density(data[["Curricular_units_2nd_sem_(grade)"]], na.rm = TRUE),
+      col = "red", lwd = 2)
+
+title(main = "Curricular units (grade)", outer = TRUE, cex.main = 1.5)
+
+#dev.off()
+
+# Ripristina le impostazioni grafiche originali
+par(mfrow = c(1, 1))
+par(oma = c(0, 0, 0, 0))
+
+```
+
+```{r}
+# Funzione per calcolare Indici di sintesi
+calculate_summary_stats <- function(data, feature) {
+  variable <- data[[feature]]
+  
+  stats <- list(
+    Media = mean(variable, na.rm = TRUE),
+    Mediana = median(variable, na.rm = TRUE),
+    Moda = as.numeric(names(sort(table(variable), decreasing = TRUE)[1])),
+    Varianza = var(variable, na.rm = TRUE),
+    Deviazione_Standard = sd(variable, na.rm = TRUE),
+    Coefficiente_Variabilità = sd(variable, na.rm = TRUE) / mean(variable, na.rm = TRUE) * 100,
+    Quantile_1 = quantile(variable, 0.25, na.rm = TRUE),
+    Quantile_3 = quantile(variable, 0.75, na.rm = TRUE),
+    Minimo = min(variable, na.rm = TRUE),
+    Massimo = max(variable, na.rm = TRUE),
+    Range = max(variable, na.rm = TRUE) - min(variable, na.rm = TRUE),
+    IQR = IQR(variable, na.rm = TRUE)
+  )
+  
+  return(stats)
+}
+
+# Lista delle feature
+features <- c(
+  "Curricular_units_1st_sem_(credited)",
+  "Curricular_units_2nd_sem_(credited)",
+  "Curricular_units_1st_sem_(enrolled)",
+  "Curricular_units_2nd_sem_(enrolled)",
+  "Curricular_units_1st_sem_(evaluations)",
+  "Curricular_units_2nd_sem_(evaluations)",
+  "Curricular_units_1st_sem_(approved)",
+  "Curricular_units_2nd_sem_(approved)",
+  "Curricular_units_1st_sem_(without_evaluations)",
+  "Curricular_units_2nd_sem_(without_evaluations)",
+  "Curricular_units_1st_sem_(grade)",
+  "Curricular_units_2nd_sem_(grade)"
+)
+
+for (feature in features) {
+  cat("\n=== Statistiche per:", feature, "===\n")
+  stats <- calculate_summary_stats(data, feature)
+  print(stats)
+  cat("===========================================\n")
+}
+```
+
+```{r}
+library(ggplot2)
+
+create_curricular_boxplots <- function(data, features, output_dir = "Grafici") {
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir)
+  }
+  
+  for (feature in features) {
+    feature_2nd <- gsub("1st", "2nd", feature)
+    
+    feature_data_1st <- data[[feature]]
+    feature_data_2nd <- data[[feature_2nd]]
+    
+    if (all(is.na(feature_data_1st)) && all(is.na(feature_data_2nd))) {
+      cat("Le feature", feature, "e", feature_2nd, "contengono solo valori NA. Boxplot non creati.\n")
+      next
+    }
+    
+    cleaned_feature_name <- gsub("_1st_sem_", " ", feature)
+    cleaned_feature_name <- gsub("_", " ", cleaned_feature_name)
+    
+    boxplot_data <- data.frame(
+      Valore = c(feature_data_1st, feature_data_2nd),
+      Semestre = rep(c("1° Semestre", "2° Semestre"), each = nrow(data))
+    )
+    
+    y_label <- ifelse(grepl("grade", feature, ignore.case = TRUE), "Grade", "Curricular Units")
+    
+    y_limits <- if (grepl("grade", feature, ignore.case = TRUE)) c(0, 20) else NULL
+    
+    p <- ggplot(boxplot_data, aes(x = Semestre, y = Valore, fill = Semestre)) +
+      geom_boxplot(outlier.color = "darkblue", outlier.size = 1.5, width = 0.5) +
+      stat_boxplot(geom = "errorbar", width = 0.25) +  # Aggiunge le error bar
+      scale_fill_manual(values = c("1° Semestre" = "lightblue", "2° Semestre" = "orange")) +
+      labs(title = paste("Boxplot:", cleaned_feature_name),
+           x = "", y = y_label) +  # Cambia la label dell'asse y dinamicamente
+      theme_minimal() +
+      theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+            legend.position = "none")
+    
+    if (!is.null(y_limits)) {
+      p <- p + ylim(y_limits)
+    }
+    
+    file_name <- paste0(output_dir, "/Boxplot_", gsub(" ", "_", cleaned_feature_name), ".pdf")
+    
+    # Salva in PDF
+    # pdf(file_name, width = 8, height = 5)
+    print(p)
+    # dev.off()
+    
+  }
+}
+
+
+
+
+features <- c(
+  "Curricular_units_1st_sem_(credited)",
+  "Curricular_units_1st_sem_(enrolled)",
+  "Curricular_units_1st_sem_(evaluations)",
+  "Curricular_units_1st_sem_(approved)",
+  "Curricular_units_1st_sem_(without_evaluations)",
+  "Curricular_units_1st_sem_(grade)"
+)
+
+# Genera i boxplot
+create_curricular_boxplots(data, features)
+```
+
+```{r}
+library(dplyr)
+
+calculate_all_outliers <- function(data, features) {
+  all_outliers <- list()
+  
+  for (feature in features) {
+    feature_data <- data[[feature]]
+    
+    # Controllo per valori NA
+    if (all(is.na(feature_data))) {
+      cat("La feature", feature, "contiene solo valori NA. Outlier non calcolati.\n")
+      next
+    }
+    
+    outliers <- data %>%
+      summarise(
+        Q1 = quantile(.data[[feature]], 0.25, na.rm = TRUE),
+        Q3 = quantile(.data[[feature]], 0.75, na.rm = TRUE),
+        IQR = IQR(.data[[feature]], na.rm = TRUE)
+      ) %>%
+      mutate(
+        Lower_Bound = Q1 - 1.5 * IQR,
+        Upper_Bound = Q3 + 1.5 * IQR
+      )
+    
+    lower_bound <- outliers$Lower_Bound
+    upper_bound <- outliers$Upper_Bound
+    
+    outliers_table <- data %>%
+      filter(.data[[feature]] < lower_bound | .data[[feature]] > upper_bound)
+    
+    if (nrow(outliers_table) == 0) {
+      cat("Nessun outlier trovato per la feature:", feature, "\n")
+    } else {
+      cat("Outlier trovati per la feature:", feature, "\n")
+      print(outliers_table)
+    }
+    
+    all_outliers[[feature]] <- outliers_table
+  }
+  
+  return(all_outliers)
+}
+
+
+
+features <- c(
+  "Curricular_units_1st_sem_(credited)",
+  "Curricular_units_1st_sem_(enrolled)",
+  "Curricular_units_1st_sem_(evaluations)",
+  "Curricular_units_1st_sem_(approved)",
+  "Curricular_units_1st_sem_(without_evaluations)",
+  "Curricular_units_1st_sem_(grade)"
+)
+
+# Calcola gli outlier per tutte le feature
+outliers <- calculate_all_outliers(data, features)
+```
+

@@ -1,0 +1,98 @@
+```{r}
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(here)
+
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+
+# Funzione per creare Boxplot suddivisi per Target
+create_boxplot_by_target <- function(features, target, data, output_dir = "Grafici", colors = c("#FF6A6A", "#32CD32", "#6495ED")) {
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir)
+  }
+  
+  y_limits <- list(
+    "Curricular_units_1st_sem_(approved)" = c(0, 25),
+    "Curricular_units_1st_sem_(credited)" = c(0, 20),
+    "Curricular_units_1st_sem_(enrolled)" = c(0, 25),
+    "Curricular_units_1st_sem_(evaluations)" = c(0, 45),
+    "Curricular_units_1st_sem_(grade)" = c(0, 20),
+    "Curricular_units_1st_sem_(without_evaluations)" = c(0, 15)
+  )
+  
+  for (feature in features) {
+    # Ottieni il nome corrispondente per il 2° semestre
+    feature_2nd <- gsub("1st", "2nd", feature)
+    
+    if (!feature %in% colnames(data) || !feature_2nd %in% colnames(data)) {
+      cat("Le feature", feature, "o", feature_2nd, "non sono presenti nel dataset. Boxplot non creati.\n")
+      next
+    }
+    
+    cleaned_feature_name <- gsub("_1st_sem_", " ", feature)
+    cleaned_feature_name <- gsub("_", " ", cleaned_feature_name)
+    
+    y_label <- ifelse(grepl("grade", feature, ignore.case = TRUE), "Grade", "Curricular Units")
+    
+    y_limit <- y_limits[[feature]]
+    
+    p1 <- ggplot(data, aes(x = .data[[target]], y = .data[[feature]], fill = .data[[target]])) +
+      geom_boxplot(notch = FALSE, outlier.color = "darkblue", outlier.shape = 1, width = 0.6) +
+      stat_boxplot(geom = "errorbar", width = 0.2, color = "black") +
+      scale_fill_manual(values = colors) +
+      ylim(y_limit) +  # Imposta i limiti dell'asse y
+      labs(title = "1° Semestre",
+           x = target,
+           y = y_label) +
+      theme_minimal() +
+      theme(plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2),
+            legend.position = "none")
+    
+    p2 <- ggplot(data, aes(x = .data[[target]], y = .data[[feature_2nd]], fill = .data[[target]])) +
+      geom_boxplot(notch = FALSE, outlier.color = "darkblue", outlier.shape = 1, width = 0.6) +
+      stat_boxplot(geom = "errorbar", width = 0.2, color = "black") +
+      scale_fill_manual(values = colors) +
+      ylim(y_limit) +  # Imposta i limiti dell'asse y
+      labs(title = "2° Semestre",
+           x = target,
+           y = y_label) +
+      theme_minimal() +
+      theme(plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2),
+            legend.position = "none")
+    
+    # Combina i grafici 
+    combined_plot <- p1 + p2 + plot_layout(ncol = 2) +
+      plot_annotation(
+        title = paste("Boxplot:", cleaned_feature_name, " / Target"),
+        theme = theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"))
+      )
+    
+    # Salvataggio in PDF
+    pdf_filename <- paste0(output_dir, "/Boxplot_Target_", gsub(" ", "_", cleaned_feature_name), ".pdf")
+    # pdf(pdf_filename, width = 12, height = 6)
+    print(combined_plot)
+    # dev.off()
+    
+  }
+}
+
+
+
+features <- c(
+  "Curricular_units_1st_sem_(credited)",
+  "Curricular_units_1st_sem_(enrolled)",
+  "Curricular_units_1st_sem_(evaluations)",
+  "Curricular_units_1st_sem_(approved)",
+  "Curricular_units_1st_sem_(without_evaluations)",
+  "Curricular_units_1st_sem_(grade)"
+)
+
+# Variabile target
+target <- "Target"
+
+# Genera i boxplot
+create_boxplot_by_target(features, target, data)
+```
+

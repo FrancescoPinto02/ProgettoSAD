@@ -40,7 +40,7 @@ for (col in colnames(columns_to_extract)) {
   
   # Creazione del file PDF
   pdf_filename <- paste0("Grafici/Barplot_", gsub(" ", "_", cleaned_col_name), ".pdf")
-  #pdf(pdf_filename)
+  # pdf(pdf_filename)
   
   # Creazione del Barplot
   create_barplot(freq = freq, 

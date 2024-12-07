@@ -67,6 +67,30 @@ library(dplyr)
 
 colnames(data)[colnames(data) == "Previous_qualification_.grade."] <- "Previous_qualification_grade"
 
+calculate_summary_stats <- function(data, feature) {
+  # Estrai la variabile specificata
+  variable <- data[[feature]]
+  
+  # Calcola le statistiche riepilogative
+  stats <- list(
+    Media = mean(variable, na.rm = TRUE),
+    Mediana = median(variable, na.rm = TRUE),
+    Moda = as.numeric(names(sort(table(variable), decreasing = TRUE)[1])),
+    Varianza = var(variable, na.rm = TRUE),
+    Deviazione_Standard = sd(variable, na.rm = TRUE),
+    Coefficiente_Variabilità = sd(variable, na.rm = TRUE) / mean(variable, na.rm = TRUE) * 100,
+    Quantile_1 = quantile(variable, 0.25, na.rm = TRUE),
+    Quantile_3 = quantile(variable, 0.75, na.rm = TRUE),
+    Minimo = min(variable, na.rm = TRUE),
+    Massimo = max(variable, na.rm = TRUE),
+    Range = max(variable, na.rm = TRUE) - min(variable, na.rm = TRUE),
+    IQR = IQR(variable, na.rm = TRUE)
+  )
+  
+  # Restituisci le statistiche
+  return(stats)
+}
+
 # Funzione per Creare Istogrammi con Densità
 create_histogram <- function(data, feature, output_dir = "Grafici") {
   cleaned_feature_name <- gsub("_", " ", feature)
@@ -155,10 +179,16 @@ calculate_outliers <- function(data, feature) {
 
 features_to_plot <- c("Previous_qualification_grade", "Admission_grade")
 
+for (feature in features_to_plot) {
+  cat("\n=== Statistiche per:", feature, "===\n")
+  stats <- calculate_summary_stats(data, feature)
+  print(stats)
+  cat("===========================================\n")
+}
+
+
 # Creazione degli Istogrammi con Densità e Salvataggio
 for (feature in features_to_plot) {
-  stats <- calculate_summary_stats(data = data, feature = feature)
-  print(stats)
   
   create_histogram(data = data, feature = feature)
   

@@ -141,12 +141,12 @@ create_boxplot <- function(feature, target, data, colors) {
           legend.position = "none")
   
   pdf_filename <- paste0("Grafici/Boxplot_Target_", gsub(" ", "_", cleaned_feature_name), ".pdf")
-  pdf(pdf_filename)
+  # pdf(pdf_filename)
   
   # Mostra il grafico
   print(p)
   
-  dev.off()
+  # dev.off()
 }
 
 # Sottoinsieme di feature da analizzare
