@@ -1,0 +1,173 @@
+```{r}
+library(here)
+library(corrplot)
+
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+head(data)
+
+numeric_features <- c("Age_at_enrollment", "Previous_qualification_(grade)", "Admission_grade", "Curricular_units_1st_sem_(credited)", "Curricular_units_1st_sem_(enrolled)","Curricular_units_1st_sem_(evaluations)", "Curricular_units_1st_sem_(approved)","Curricular_units_1st_sem_(grade)", "Curricular_units_1st_sem_(without_evaluations)","Curricular_units_2nd_sem_(credited)", "Curricular_units_2nd_sem_(enrolled)","Curricular_units_2nd_sem_(evaluations)", "Curricular_units_2nd_sem_(approved)","Curricular_units_2nd_sem_(grade)", "Curricular_units_2nd_sem_(without_evaluations)", "Unemployment_rate", "Inflation_rate", "GDP")
+
+numeric_data <- data[, numeric_features]
+
+correlation_matrix <- cor(numeric_data)
+
+
+winsorize_boxplot <- function(column) {
+  # Calcolo dei quantili e dell'IQR
+  q1 <- quantile(column, 0.25, na.rm = TRUE)  # Primo quartile
+  q3 <- quantile(column, 0.75, na.rm = TRUE)  # Terzo quartile
+  iqr <- q3 - q1                              # Intervallo interquartile
+  
+  # Calcolo dei limiti del boxplot
+  lower_bound <- q1 - 1.5 * iqr
+  upper_bound <- q3 + 1.5 * iqr
+  
+  # Winsorization basata sui limiti
+  column <- pmin(pmax(column, lower_bound), upper_bound)
+  return(column)
+}
+```
+
+# Correlation Plot Variabili Numeriche
+```{r}
+#Corrplot
+#pdf("correlation_plot.pdf", width = 8, height = 8)
+corrplot(correlation_matrix, method = "color", type = "upper",
+         tl.col = "black", tl.srt = 45, diag = FALSE,
+         addCoef.col = "black", number.cex = 0.3, tl.cex = 0.4)
+
+#dev.off()
+
+```
+
+
+# Scatterplot Variabili Numeriche
+```{r}
+
+library(GGally)
+
+# Subset dei dati numerici
+numeric_data <- data[, numeric_features]
+
+# Creazione della matrice triangolare di scatterplot
+#pdf("scatterplot_matrix.pdf", width = 12, height = 12)
+
+ggpairs(
+  numeric_data,
+  upper = list(continuous = wrap("cor", size = 3)), # Mostra le correlazioni nella parte superiore
+  lower = list(continuous = wrap("points", alpha = 0.5, size = 0.5)), # Scatterplot nella parte inferiore
+  diag = list(continuous = wrap("barDiag", bins = 20)) # Istogrammi nella diagonale
+)
+
+#dev.off()
+
+```
+
+# Regressione Previous Qualification Grade e Admission Grade
+```{r}
+# Calcolo dell'IQR per la variabile indipendente
+iqr_x <- IQR(data$`Previous_qualification_(grade)`)
+q1_x <- quantile(data$`Previous_qualification_(grade)`, 0.25)
+q3_x <- quantile(data$`Previous_qualification_(grade)`, 0.75)
+lower_bound_x <- q1_x - 1.5 * iqr_x
+upper_bound_x <- q3_x + 1.5 * iqr_x
+
+# Calcolo dell'IQR per la variabile dipendente
+iqr_y <- IQR(data$Admission_grade)
+q1_y <- quantile(data$Admission_grade, 0.25)
+q3_y <- quantile(data$Admission_grade, 0.75)
+lower_bound_y <- q1_y - 1.5 * iqr_y
+upper_bound_y <- q3_y + 1.5 * iqr_y
+
+
+
+
+# Winsorization per la variabile indipendente
+data$`Previous_qualification_(grade)` <- pmin(pmax(data$`Previous_qualification_(grade)`, lower_bound_x), upper_bound_x)
+
+# Winsorization per la variabile dipendente
+data$Admission_grade <- pmin(pmax(data$Admission_grade, lower_bound_y), upper_bound_y)
+
+x_var <- data$`Previous_qualification_(grade)` # Variabile Indipendente
+y_var <- data$`Admission_grade` # Variabile Dipendente
+
+# Creazione dello scatterplot
+plot(x_var, y_var, 
+     main = "Linear Regression: Previous Qualification Grade / Admission Grade",
+     xlab = "Previous Qualification Grade",
+     ylab = "Admission Grade",
+     pch = 19,
+     col = "blue")   
+
+# Calcolo del modello di regressione lineare
+modello <- lm(y_var ~ x_var)
+
+# Aggiunta della retta di regressione
+abline(modello, col = "red", lwd = 2)
+
+# Estrazione dei coefficienti
+intercept <- coef(modello)[1]  # Intercetta
+slope <- coef(modello)[2]      # Coefficiente angolare
+
+# Creazione dell'equazione della retta
+equation <- paste0("y = ", round(intercept, 2), " + ", round(slope, 2), "x")
+
+# Aggiunta dell'equazione al grafico
+print(equation)
+
+# Visualizzazione dei parametri della retta di regressione
+summary(modello)
+
+```
+
+# Regressione Previous 1st sem Grade e 2nd sem Grade
+```{r}
+# Calcolo dell'IQR per la variabile indipendente
+iqr_x <- IQR(data$`Curricular_units_1st_sem_(grade)`)
+q1_x <- quantile(data$`Curricular_units_1st_sem_(grade)`, 0.25)
+q3_x <- quantile(data$`Curricular_units_1st_sem_(grade)`, 0.75)
+lower_bound_x <- q1_x - 1.5 * iqr_x
+upper_bound_x <- q3_x + 1.5 * iqr_x
+
+# Calcolo dell'IQR per la variabile dipendente
+iqr_y <- IQR(data$`Curricular_units_2nd_sem_(grade)`)
+q1_y <- quantile(data$`Curricular_units_2nd_sem_(grade)`, 0.25)
+q3_y <- quantile(data$`Curricular_units_2nd_sem_(grade)`, 0.75)
+lower_bound_y <- q1_y - 1.5 * iqr_y
+upper_bound_y <- q3_y + 1.5 * iqr_y
+
+data_filtered <- data[!(data$`Curricular_units_1st_sem_(grade)` == 0 | data$`Curricular_units_2nd_sem_(grade)` == 0), ]
+data_filtered$`Curricular_units_1st_sem_(grade)` <- winsorize(data_filtered$`Curricular_units_1st_sem_(grade)`)
+data_filtered$`Curricular_units_2nd_sem_(grade)` <- winsorize(data_filtered$`Curricular_units_2nd_sem_(grade)`)
+
+x_var <- data_filtered$`Curricular_units_1st_sem_(grade)` # Variabile Indipendente
+y_var <- data_filtered$`Curricular_units_2nd_sem_(grade)` # Variabile Dipendente
+
+# Creazione dello scatterplot
+plot(x_var, y_var, 
+     main = "Linear Regression: 1st Semester Grade / 2nd Semester Grade",
+     xlab = "1st Semester Grade",
+     ylab = "2nd Semester Grade",
+     pch = 19,
+     col = "blue")   
+
+# Calcolo del modello di regressione lineare
+modello <- lm(y_var ~ x_var)
+
+# Aggiunta della retta di regressione
+abline(modello, col = "red", lwd = 2)
+
+# Estrazione dei coefficienti
+intercept <- coef(modello)[1]  # Intercetta
+slope <- coef(modello)[2]      # Coefficiente angolare
+
+# Creazione dell'equazione della retta
+equation <- paste0("y = ", round(intercept, 2), " + ", round(slope, 2), "x")
+
+# Aggiunta dell'equazione al grafico
+print(equation)
+
+# Visualizzazione dei parametri della retta di regressione
+summary(modello)
+
+```
