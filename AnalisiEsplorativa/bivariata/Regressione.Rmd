@@ -12,7 +12,7 @@ numeric_data <- data[, numeric_features]
 correlation_matrix <- cor(numeric_data)
 
 
-winsorize_boxplot <- function(column) {
+winsorize <- function(column) {
   # Calcolo dei quantili e dell'IQR
   q1 <- quantile(column, 0.25, na.rm = TRUE)  # Primo quartile
   q3 <- quantile(column, 0.75, na.rm = TRUE)  # Terzo quartile
@@ -52,12 +52,12 @@ numeric_data <- data[, numeric_features]
 # Creazione della matrice triangolare di scatterplot
 #pdf("scatterplot_matrix.pdf", width = 12, height = 12)
 
-ggpairs(
-  numeric_data,
-  upper = list(continuous = wrap("cor", size = 3)), # Mostra le correlazioni nella parte superiore
-  lower = list(continuous = wrap("points", alpha = 0.5, size = 0.5)), # Scatterplot nella parte inferiore
-  diag = list(continuous = wrap("barDiag", bins = 20)) # Istogrammi nella diagonale
-)
+#ggpairs(
+ # numeric_data,
+  #upper = list(continuous = wrap("cor", size = 3)), # Mostra le correlazioni nella parte superiore
+  #lower = list(continuous = wrap("points", alpha = 0.5, size = 0.5)), # Scatterplot nella parte inferiore
+  #diag = list(continuous = wrap("barDiag", bins = 20)) # Istogrammi nella diagonale
+#)
 
 #dev.off()
 
@@ -170,4 +170,10 @@ print(equation)
 # Visualizzazione dei parametri della retta di regressione
 summary(modello)
 
+# Calcolo del Mean Absolute Error (MAE)
+predizioni <- predict(modello, newdata = data.frame(x_var = x_var))
+mae <- mean(abs(predizioni - y_var))
+print(paste("Il Mean Absolute Error (MAE) è:", round(mae, 2)))
 ```
+
+
