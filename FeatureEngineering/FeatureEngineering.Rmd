@@ -1,0 +1,330 @@
+```{r}
+# Caricamento delle librerie necessarie
+library(here)
+library(dplyr)
+
+# Lettura del dataset
+data <- read.csv(here("dataset/dataClean.csv"), sep = ",", header = TRUE, check.names = FALSE)
+head(data)
+```
+
+```{r}
+# Definizione delle variabili categoriche
+categorical_features <- c(
+  "Marital_status",
+  "Application_mode",
+  "Application_order",
+  "Course",
+  "Previous_qualification",
+  "Nationality",
+  "Mothers_qualification",
+  "Fathers_qualification",
+  "Mothers_occupation",
+  "Fathers_occupation",
+  "Displaced",
+  "Educational_special_needs",
+  "Debtor",
+  "Tuition_fees_up_to_date",
+  "Gender",
+  "Scholarship_holder",
+  "International"
+)
+
+# Ciclo per eseguire il test del Chi-quadro su tutte le variabili categoriche
+for (f in categorical_features) {
+  # Creare una tabella di contingenza tra la variabile attuale e Target
+  tabella <- table(data[[f]], data$Target)
+  
+  # Visualizzare la tabella di contingenza
+  print(paste("Tabella di contingenza per:", f))
+  print(tabella)
+  
+  # Eseguire il test del Chi-quadro
+  test_chi <- chisq.test(tabella)
+  
+  # Visualizzare i risultati del test
+  print(paste("Risultati del test Chi-quadro per:", f))
+  print(test_chi)
+  
+  # Visualizzare le frequenze attese
+  print(paste("Frequenze attese per:", f))
+  print(test_chi$expected)
+}
+
+
+```
+
+
+#Drop Feature
+```{r}
+data$'Nationality' <- NULL
+data$'International' <- NULL
+data$'Educational_special_needs' <- NULL
+data$'Curricular_units_1st_sem_(credited)' <- NULL
+data$'Curricular_units_2nd_sem_(credited)' <- NULL
+data$'Curricular_units_2nd_sem_(without_evaluations)' <- NULL
+data$'Curricular_units_1st_sem_(without_evaluations)' <- NULL
+head (data)
+```
+
+
+
+
+```{r}
+data <- data %>%
+  mutate(
+    # Aggregazione per somma
+    CU_1st_year_enrolled = `Curricular_units_1st_sem_(enrolled)` + `Curricular_units_2nd_sem_(enrolled)`,
+    CU_1st_year_evaluations = `Curricular_units_1st_sem_(evaluations)` + `Curricular_units_2nd_sem_(evaluations)`,
+    CU_1st_year_approved = `Curricular_units_1st_sem_(approved)` + `Curricular_units_2nd_sem_(approved)`,
+    
+    # Aggregazione per media
+    CU_1st_year_grade = (`Curricular_units_1st_sem_(grade)` + `Curricular_units_2nd_sem_(grade)`) / 2,
+    
+    # Percentuale di esami completati rispetto a quelli previsti
+    Completed_exams_percentage = ifelse(CU_1st_year_enrolled > 0, (CU_1st_year_approved / CU_1st_year_enrolled) * 100, 0),
+    
+    # Percentuale di esami superati rispetto a quelli provati
+    Passed_exams_percentage = ifelse(CU_1st_year_evaluations > 0, (CU_1st_year_approved / CU_1st_year_evaluations) * 100, 0)
+  )
+
+data$'Curricular_units_1st_sem_(enrolled)' <- NULL
+data$'Curricular_units_2nd_sem_(enrolled)' <- NULL
+data$'Curricular_units_2nd_sem_(evaluations)' <- NULL
+data$'Curricular_units_1st_sem_(evaluations)' <- NULL
+data$'Curricular_units_1st_sem_(approved)' <- NULL
+data$'Curricular_units_2nd_sem_(approved)' <- NULL
+data$'Curricular_units_2nd_sem_(grade)' <- NULL
+data$'Curricular_units_1st_sem_(grade)' <- NULL
+
+head(data)
+```
+
+# Grafici per le nuove variabili
+```{r}
+library(ggplot2)
+
+create_histogram <- function(data, feature, output_dir = "Grafici") {
+  cleaned_feature_name <- gsub("_", " ", feature)
+  feature_data <- data[[feature]]
+  
+  # Salvataggio in PDF
+  # pdf(file = paste0(output_dir, "/DensityPlot_", gsub(" ", "_", cleaned_feature_name), ".pdf"))
+  
+  hist(feature_data,
+       main = paste("Density Plot:", cleaned_feature_name),
+       xlab = cleaned_feature_name,
+       ylab = "Densità",
+       xlim = c(0, 100),
+       col = "lightblue",
+       border = "darkblue",
+       breaks = seq(0, 100, by = 4),
+       freq = FALSE)
+  grid()
+  
+  dens <- density(feature_data, na.rm = TRUE)
+  lines(dens, col = "red", lwd = 2)
+  
+  # dev.off()
+}
+
+# Funzione per Creare Boxplot
+create_boxplot <- function(data, feature, output_dir = "Grafici") {
+  cleaned_feature_name <- gsub("_", " ", feature)
+  feature_data <- data[[feature]]
+  
+  if (all(is.na(feature_data))) {
+    cat("La feature", feature, "contiene solo valori NA. Boxplot non creato.\n")
+    return()
+  }
+  
+  # Creazione del Boxplot
+  p <- ggplot(data, aes(x = .data[[feature]], y = "")) +
+    geom_boxplot(fill = "lightblue", color = "darkblue", width = 0.3) +
+    labs(title = paste("Boxplot:", cleaned_feature_name),
+         x = cleaned_feature_name) +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.15) +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),   
+          axis.ticks.y = element_blank(),
+          plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2))
+  
+  # Salvataggio in PDF
+  #pdf(file = paste0(output_dir, "/Boxplot_", gsub(" ", "_", cleaned_feature_name), ".pdf"))
+  
+  print(p)
+  
+  #dev.off()
+  
+}
+
+create_boxplot_target <- function(feature, target, data, colors) {
+  cleaned_feature_name <- gsub("_", " ", feature)
+  
+  # Creazione del boxplot
+  p <- ggplot(data, aes_string(x = target, y = feature, fill = target)) +
+    geom_boxplot(notch = FALSE,
+                 outlier.color = "darkblue",
+                 outlier.shape = 1,
+                 width = 0.6) +
+    stat_boxplot(geom = "errorbar",
+                 width = 0.2,
+                 color = "black") +
+    labs(title = paste("Boxplot:", cleaned_feature_name, "/", target),
+         x = target,
+         y = cleaned_feature_name) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2),
+          legend.position = "none")
+  
+  pdf_filename <- paste0("Grafici/Boxplot_Target_", gsub(" ", "_", cleaned_feature_name), ".pdf")
+  # pdf(pdf_filename)
+  
+  # Mostra il grafico
+  print(p)
+  
+  # dev.off()
+}
+
+create_histogram(data, "Completed_exams_percentage")
+create_boxplot(data, "Completed_exams_percentage")
+create_boxplot_target(feature = "Completed_exams_percentage", 
+                 target = "Target", 
+                 data = data, 
+                 colors = c("#FF6A6A", "#32CD32", "#6495ED"))
+                 
+create_histogram(data, "Passed_exams_percentage")
+create_boxplot(data, "Passed_exams_percentage")
+create_boxplot_target(feature = "Passed_exams_percentage", 
+                 target = "Target", 
+                 data = data, 
+                 colors = c("#FF6A6A", "#32CD32", "#6495ED"))
+```
+
+```{r}
+library(corrplot)
+numeric_features <- c("Age_at_enrollment", "Previous_qualification_(grade)", "Admission_grade", "Unemployment_rate", "Inflation_rate", "GDP", "CU_1st_year_enrolled", "CU_1st_year_approved", "CU_1st_year_evaluations", "Completed_exams_percentage", "Passed_exams_percentage")
+
+numeric_data <- data[, numeric_features]
+
+correlation_matrix <- cor(numeric_data)
+
+#Corrplot
+#pdf("correlation_plot.pdf", width = 8, height = 8)
+corrplot(correlation_matrix, method = "color", type = "upper",
+         tl.col = "black", tl.srt = 45, diag = FALSE,
+         addCoef.col = "black", number.cex = 0.3, tl.cex = 0.4)
+
+#dev.off()
+
+```
+
+```{r}
+# Caricare le librerie necessarie
+library(dplyr)
+library(ggplot2)
+library(cluster)    # Per calcolare BCSS e CH Index
+library(factoextra) # Supporto per metriche di clustering
+
+# Assicurarsi che Target sia un fattore
+data$Target <- as.factor(data$Target)
+
+# Selezionare le feature da includere nella PCA
+features_subset <- data %>% select(CU_1st_year_evaluations, CU_1st_year_approved, 
+                                    CU_1st_year_enrolled, Passed_exams_percentage, Completed_exams_percentage)
+
+# Combinare features_subset e Target per garantire coerenza durante la pulizia
+complete_data <- cbind(features_subset, Target = data$Target)
+
+# Verificare la presenza di valori mancanti e rimuoverli
+complete_data <- na.omit(complete_data)
+
+# Separare nuovamente le feature e la variabile Target
+features_subset <- complete_data %>% select(-Target)
+target <- complete_data$Target
+
+# Assicurarsi che tutte le colonne siano numeriche
+features_subset <- features_subset %>% mutate_if(is.factor, as.numeric)
+
+# Standardizzare i dati
+features_scaled <- scale(features_subset)
+
+# Effettuare la PCA
+pca_model <- prcomp(features_scaled, center = TRUE, scale. = TRUE)
+
+# Proiettare i dati sulle prime due componenti principali
+pca_projections <- as.data.frame(pca_model$x[, 1:2])
+colnames(pca_projections) <- c("PC1", "PC2")
+
+# Aggiungere la variabile Target mantenendo l'allineamento
+pca_projections$Target <- target
+
+# Applicare l'Elbow Method per determinare K ottimale
+set.seed(123)
+wcss <- vector()
+
+for (k in 1:10) {
+  kmeans_model <- kmeans(pca_projections[, c("PC1", "PC2")], centers = k, nstart = 25)
+  wcss[k] <- kmeans_model$tot.withinss
+}
+
+# Visualizzare l'Elbow Method
+elbow_plot <- data.frame(K = 1:10, WCSS = wcss)
+
+ggplot(elbow_plot, aes(x = K, y = WCSS)) +
+  geom_line(color = "blue", size = 1) +
+  geom_point(color = "red", size = 3) +
+  labs(title = "Elbow Method per determinare il numero ottimale di cluster",
+       x = "Numero di cluster (K)",
+       y = "Within-Cluster Sum of Squares (WCSS)") +
+  theme_minimal()
+
+# Scegliere il valore di K ottimale
+optimal_k <- 4
+
+# Applicare il clustering K-means
+kmeans_model <- kmeans(pca_projections[, c("PC1", "PC2")], centers = optimal_k, nstart = 25)
+
+# Aggiungere i cluster al dataset
+pca_projections$Cluster <- as.factor(kmeans_model$cluster)
+
+# Visualizzare i risultati del clustering
+ggplot(pca_projections, aes(x = PC1, y = PC2, color = Cluster)) +
+  geom_point(size = 3, alpha = 0.8) +
+  labs(title = paste("Clustering K-means con K =", optimal_k),
+       x = "Prima componente principale (PC1)",
+       y = "Seconda componente principale (PC2)") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# Analizzare la distribuzione della variabile Target all'interno dei cluster
+target_distribution <- pca_projections %>%
+  group_by(Cluster, Target) %>%
+  summarise(Count = n()) %>%
+  mutate(Percentage = Count / sum(Count)) %>%
+  arrange(Cluster, desc(Count))
+
+# Visualizzare la distribuzione della variabile Target nei cluster (Grouped Barplot)
+ggplot(target_distribution, aes(x = Cluster, y = Percentage, fill = Target)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Distribuzione della variabile Target nei cluster",
+       x = "Cluster",
+       y = "Frequenza relativa",
+       fill = "Target") +
+  theme_minimal()
+
+# Calcolare WCSS e BCSS
+total_ss <- sum((pca_projections[, c("PC1", "PC2")] - colMeans(pca_projections[, c("PC1", "PC2")]))^2)
+wcss_final <- kmeans_model$tot.withinss
+bcss_final <- total_ss - wcss_final
+
+cat("WCSS:", wcss_final, "\n")
+cat("BCSS:", bcss_final, "\n")
+
+# Calcolare il Calinski-Harabasz Index
+ch_index <- (bcss_final / (optimal_k - 1)) / (wcss_final / (nrow(pca_projections) - optimal_k))
+cat("Calinski-Harabasz Index:", ch_index, "\n")
+
+```
+
