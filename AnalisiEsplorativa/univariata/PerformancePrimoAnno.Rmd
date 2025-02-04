@@ -3,77 +3,13 @@
 library(here)
 data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
 
+head(data)
+
 if (!dir.exists("Grafici")) {
   dir.create("Grafici")
 }
 
-# Lista delle Feature
-features <- c(
-  "Curricular_units_1st_sem_(credited)",
-  "Curricular_units_1st_sem_(enrolled)",
-  "Curricular_units_1st_sem_(evaluations)",
-  "Curricular_units_1st_sem_(approved)",
-  "Curricular_units_1st_sem_(without_evaluations)"
-)
 
-# Creazione Grafici
-for (feature in features) {
-  feature_2nd <- gsub("1st", "2nd", feature)
-  
-  x_limits <- range(c(data[[feature]], data[[feature_2nd]]), na.rm = TRUE)
-  x_limits <- c(floor(x_limits[1]) - 1, ceiling(x_limits[2]) + 1)  # Aggiungi margine
-  
-  x_breaks <- seq(x_limits[1], x_limits[2], by = 1)
-  
-  hist_1st <- hist(data[[feature]], breaks = x_breaks, plot = FALSE)
-  hist_2nd <- hist(data[[feature_2nd]], breaks = x_breaks, plot = FALSE)
-  y_max <- max(c(hist_1st$counts, hist_2nd$counts))
-  
-  if (feature == "Curricular_units_1st_sem_(enrolled)") {
-    y_max <- 2000
-  }
-  
-  cleaned_feature_name <- gsub("_1st_sem_", "_", feature)
-  cleaned_feature_name <- gsub("_", " ", cleaned_feature_name)
-  pdf_filename <- paste0("Grafici/Histogram_", gsub(" ", "_", cleaned_feature_name), ".pdf")
-  
-  # Apri il file PDF
-  # pdf(pdf_filename, width = 10, height = 6)
-  
-  par(mfrow = c(1, 2))  # Due grafici affiancati
-  par(oma = c(0, 0, 2, 0))  # Margine superiore per il titolo unico
-  
-  
-  general_title <- gsub("_1st_sem_", " ", feature)
-  general_title <- gsub("_", " ", general_title)
-  
-  # Istogramma per il 1° Semestre
-  hist(data[[feature]],
-       breaks = x_breaks,
-       col = "skyblue",
-       border = "black",
-       xlim = x_limits,
-       ylim = c(0, y_max),
-       main = "1° Semestre",
-       xlab = "Curricular Units",
-       ylab = "Frequenza Assoluta")
-  
-  # Istogramma per il 2° Semestre
-  hist(data[[feature_2nd]],
-       breaks = x_breaks,
-       col = "orange",
-       border = "black",
-       xlim = x_limits,
-       ylim = c(0, y_max),
-       main = "2° Semestre",
-       xlab = "Curricular Units",
-       ylab = "Frequenza Assoluta")
-  
-  title(main = general_title, outer = TRUE, cex.main = 1.5)
-  
-  # Chiudi il file PDF
-  #dev.off()
-}
 
 ```
 
@@ -306,5 +242,848 @@ features <- c(
 
 # Calcola gli outlier per tutte le feature
 outliers <- calculate_all_outliers(data, features)
+```
+
+```{r}
+# CURRICULAR UNITS CREDITED ANALYSIS
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+# Controllo se le colonne esistono
+if (!"Curricular_units_1st_sem_(credited)" %in% colnames(data) | 
+    !"Curricular_units_2nd_sem_(credited)" %in% colnames(data)) {
+  stop("Una o entrambe le colonne non esistono nel dataset.")
+}
+
+# Rimozione di eventuali valori mancanti (Usiamo backticks ` ` per evitare errori)
+units_1st_sem <- na.omit(data$`Curricular_units_1st_sem_(credited)`)
+units_2nd_sem <- na.omit(data$`Curricular_units_2nd_sem_(credited)`)
+
+# Definizione degli stessi limiti Y per entrambi gli istogrammi
+max_y_hist <- max(table(units_1st_sem) / length(units_1st_sem) * 100,
+                  table(units_2nd_sem) / length(units_2nd_sem) * 100) * 1.2
+
+### 📌 ISTOGRAMMI ###
+# Istogramma per il 1° semestre
+hist_1st <- ggplot(data, aes(x = `Curricular_units_1st_sem_(credited)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_1st_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#1f77b4") +  # Blu
+  labs(subtitle = "Histogram: 1st Semester",
+       x = "Units Credited",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist))
+
+# Istogramma per il 2° semestre
+hist_2nd <- ggplot(data, aes(x = `Curricular_units_2nd_sem_(credited)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_2nd_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#ff7f0e") +  # Arancione
+  labs(subtitle = "Histogram: 2nd Semester",
+       x = "Units Credited",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist))
+
+### 📌 BOXPLOT ###
+# Definizione degli stessi limiti Y per i boxplot
+max_y_box <- max(max(units_1st_sem), max(units_2nd_sem)) * 1.1
+
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `Curricular_units_1st_sem_(credited)`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Units Credited") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `Curricular_units_2nd_sem_(credited)`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Units Credited") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+### 📌 COMBINAZIONE DEI 4 GRAFICI ###
+combined_plot <- (hist_1st | box_1st) /
+                 (hist_2nd | box_2nd) +
+  plot_annotation(title = "Curricular Units Credited") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Curricular_Units_Credited.pdf", 
+       plot = combined_plot, width = 16, height = 10)
+
+
+### 📌 CALCOLO INDICI STATISTICI ###
+# 1° semestre
+media_1st <- mean(units_1st_sem)  
+mediana_1st <- median(units_1st_sem)  
+dev_standard_1st <- sd(units_1st_sem)  
+varianza_1st <- var(units_1st_sem)  
+skewness_1st <- skewness(units_1st_sem)  
+kurtosis_1st <- kurtosis(units_1st_sem)  
+range_1st <- max(units_1st_sem) - min(units_1st_sem)  
+quartili_1st <- quantile(units_1st_sem, probs = c(0.25, 0.50, 0.75))
+iqr_1st <- IQR(units_1st_sem)  
+cv_1st <- (dev_standard_1st / media_1st) * 100  
+
+# 2° semestre
+media_2nd <- mean(units_2nd_sem)  
+mediana_2nd <- median(units_2nd_sem)  
+dev_standard_2nd <- sd(units_2nd_sem)  
+varianza_2nd <- var(units_2nd_sem)  
+skewness_2nd <- skewness(units_2nd_sem)  
+kurtosis_2nd <- kurtosis(units_2nd_sem)  
+range_2nd <- max(units_2nd_sem) - min(units_2nd_sem)  
+quartili_2nd <- quantile(units_2nd_sem, probs = c(0.25, 0.50, 0.75))
+iqr_2nd <- IQR(units_2nd_sem)  
+cv_2nd <- (dev_standard_2nd / media_2nd) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi - 1° Semestre:\n")
+cat("Media:", round(media_1st, 2), "\n")
+cat("Mediana:", round(mediana_1st, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_1st, 2), "\n")
+cat("Varianza:", round(varianza_1st, 2), "\n")
+cat("Skewness:", round(skewness_1st, 2), "\n")
+cat("Curtosi:", round(kurtosis_1st, 2), "\n")
+cat("Range:", range_1st, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_1st, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_1st, 2), "%\n\n")
+
+cat("Indici di sintesi - 2° Semestre:\n")
+cat("Media:", round(media_2nd, 2), "\n")
+cat("Mediana:", round(mediana_2nd, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_2nd, 2), "\n")
+cat("Varianza:", round(varianza_2nd, 2), "\n")
+cat("Skewness:", round(skewness_2nd, 2), "\n")
+cat("Curtosi:", round(kurtosis_2nd, 2), "\n")
+cat("Range:", range_2nd, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_2nd, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_2nd, 2), "%\n")
+
+```
+
+```{r}
+# CURRICULAR UNITS ENROLLED ANALYSIS
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+# Controllo se le colonne esistono
+if (!"Curricular_units_1st_sem_(enrolled)" %in% colnames(data) | 
+    !"Curricular_units_2nd_sem_(enrolled)" %in% colnames(data)) {
+  stop("Una o entrambe le colonne non esistono nel dataset.")
+}
+
+# Rimozione di eventuali valori mancanti
+units_1st_sem <- na.omit(data$`Curricular_units_1st_sem_(enrolled)`)
+units_2nd_sem <- na.omit(data$`Curricular_units_2nd_sem_(enrolled)`)
+
+# Definizione dei limiti comuni per l'asse X
+min_x <- min(c(units_1st_sem, units_2nd_sem))
+max_x <- max(c(units_1st_sem, units_2nd_sem))
+
+# Definizione dei limiti comuni per l'asse Y degli istogrammi
+max_y_hist <- max(table(units_1st_sem) / length(units_1st_sem) * 100,
+                  table(units_2nd_sem) / length(units_2nd_sem) * 100) * 1.2
+
+### 📌 ISTOGRAMMI ###
+# Istogramma per il 1° semestre
+hist_1st <- ggplot(data, aes(x = `Curricular_units_1st_sem_(enrolled)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_1st_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#1f77b4") +  # Blu
+  labs(subtitle = "Histogram: 1st Semester",
+       x = "Units Enrolled",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist), xlim = c(min_x, max_x))
+
+# Istogramma per il 2° semestre
+hist_2nd <- ggplot(data, aes(x = `Curricular_units_2nd_sem_(enrolled)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_2nd_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#ff7f0e") +  # Arancione
+  labs(subtitle = "Histogram: 2nd Semester",
+       x = "Units Enrolled",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist), xlim = c(min_x, max_x))
+
+### 📌 BOXPLOT ###
+# Definizione degli stessi limiti Y per i boxplot
+max_y_box <- max(max(units_1st_sem), max(units_2nd_sem)) * 1.1
+
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `Curricular_units_1st_sem_(enrolled)`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Units Enrolled") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `Curricular_units_2nd_sem_(enrolled)`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Units Enrolled") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+### 📌 COMBINAZIONE DEI 4 GRAFICI ###
+combined_plot <- (hist_1st | box_1st) /
+                 (hist_2nd | box_2nd) +
+  plot_annotation(title = "Curricular Units Enrolled") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Curricular_Units_Enrolled.pdf", 
+       plot = combined_plot, width = 16, height = 10)
+
+### 📌 CALCOLO INDICI STATISTICI ###
+# 1° semestre
+media_1st <- mean(units_1st_sem)  
+mediana_1st <- median(units_1st_sem)  
+dev_standard_1st <- sd(units_1st_sem)  
+varianza_1st <- var(units_1st_sem)  
+skewness_1st <- skewness(units_1st_sem)  
+kurtosis_1st <- kurtosis(units_1st_sem)  
+range_1st <- max(units_1st_sem) - min(units_1st_sem)  
+quartili_1st <- quantile(units_1st_sem, probs = c(0.25, 0.50, 0.75))
+iqr_1st <- IQR(units_1st_sem)  
+cv_1st <- (dev_standard_1st / media_1st) * 100  
+
+# 2° semestre
+media_2nd <- mean(units_2nd_sem)  
+mediana_2nd <- median(units_2nd_sem)  
+dev_standard_2nd <- sd(units_2nd_sem)  
+varianza_2nd <- var(units_2nd_sem)  
+skewness_2nd <- skewness(units_2nd_sem)  
+kurtosis_2nd <- kurtosis(units_2nd_sem)  
+range_2nd <- max(units_2nd_sem) - min(units_2nd_sem)  
+quartili_2nd <- quantile(units_2nd_sem, probs = c(0.25, 0.50, 0.75))
+iqr_2nd <- IQR(units_2nd_sem)  
+cv_2nd <- (dev_standard_2nd / media_2nd) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi - 1° Semestre:\n")
+cat("Media:", round(media_1st, 2), "\n")
+cat("Mediana:", round(mediana_1st, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_1st, 2), "\n")
+cat("Varianza:", round(varianza_1st, 2), "\n")
+cat("Skewness:", round(skewness_1st, 2), "\n")
+cat("Curtosi:", round(kurtosis_1st, 2), "\n")
+cat("Range:", range_1st, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_1st, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_1st, 2), "%\n\n")
+
+cat("Indici di sintesi - 2° Semestre:\n")
+cat("Media:", round(media_2nd, 2), "\n")
+cat("Mediana:", round(mediana_2nd, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_2nd, 2), "\n")
+cat("Varianza:", round(varianza_2nd, 2), "\n")
+cat("Skewness:", round(skewness_2nd, 2), "\n")
+cat("Curtosi:", round(kurtosis_2nd, 2), "\n")
+cat("Range:", range_2nd, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_2nd, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_2nd, 2), "%\n")
+
+```
+
+```{r}
+# CURRICULAR UNITS EVALUATIONS ANALYSIS
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+# Controllo se le colonne esistono
+if (!"Curricular_units_1st_sem_(evaluations)" %in% colnames(data) | 
+    !"Curricular_units_2nd_sem_(evaluations)" %in% colnames(data)) {
+  stop("Una o entrambe le colonne non esistono nel dataset.")
+}
+
+# Rimozione di eventuali valori mancanti
+units_1st_sem <- na.omit(data$`Curricular_units_1st_sem_(evaluations)`)
+units_2nd_sem <- na.omit(data$`Curricular_units_2nd_sem_(evaluations)`)
+
+# Definizione dei limiti comuni per l'asse X
+min_x <- min(c(units_1st_sem, units_2nd_sem))
+max_x <- max(c(units_1st_sem, units_2nd_sem))
+
+# Definizione dei limiti comuni per l'asse Y degli istogrammi
+max_y_hist <- max(table(units_1st_sem) / length(units_1st_sem) * 100,
+                  table(units_2nd_sem) / length(units_2nd_sem) * 100) * 1.2
+
+### 📌 ISTOGRAMMI ###
+# Istogramma per il 1° semestre
+hist_1st <- ggplot(data, aes(x = `Curricular_units_1st_sem_(evaluations)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_1st_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#1f77b4") +  # Blu
+  labs(subtitle = "Histogram: 1st Semester",
+       x = "Number of Evaluations",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist), xlim = c(min_x, max_x))
+
+# Istogramma per il 2° semestre
+hist_2nd <- ggplot(data, aes(x = `Curricular_units_2nd_sem_(evaluations)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_2nd_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#ff7f0e") +  # Arancione
+  labs(subtitle = "Histogram: 2nd Semester",
+       x = "Number of Evaluations",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist), xlim = c(min_x, max_x))
+
+### 📌 BOXPLOT ###
+# Definizione degli stessi limiti Y per i boxplot
+max_y_box <- max(max(units_1st_sem), max(units_2nd_sem)) * 1.1
+
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `Curricular_units_1st_sem_(evaluations)`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Number of Evaluations") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `Curricular_units_2nd_sem_(evaluations)`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Number of Evaluations") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+### 📌 COMBINAZIONE DEI 4 GRAFICI ###
+combined_plot <- (hist_1st | box_1st) /
+                 (hist_2nd | box_2nd) +
+  plot_annotation(title = "Curricular Units Evaluations") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Curricular_Units_Evaluations.pdf", 
+       plot = combined_plot, width = 16, height = 10)
+
+
+### 📌 CALCOLO INDICI STATISTICI ###
+# 1° semestre
+media_1st <- mean(units_1st_sem)  
+mediana_1st <- median(units_1st_sem)  
+dev_standard_1st <- sd(units_1st_sem)  
+varianza_1st <- var(units_1st_sem)  
+skewness_1st <- skewness(units_1st_sem)  
+kurtosis_1st <- kurtosis(units_1st_sem)  
+range_1st <- max(units_1st_sem) - min(units_1st_sem)  
+quartili_1st <- quantile(units_1st_sem, probs = c(0.25, 0.50, 0.75))
+iqr_1st <- IQR(units_1st_sem)  
+cv_1st <- (dev_standard_1st / media_1st) * 100  
+
+# 2° semestre
+media_2nd <- mean(units_2nd_sem)  
+mediana_2nd <- median(units_2nd_sem)  
+dev_standard_2nd <- sd(units_2nd_sem)  
+varianza_2nd <- var(units_2nd_sem)  
+skewness_2nd <- skewness(units_2nd_sem)  
+kurtosis_2nd <- kurtosis(units_2nd_sem)  
+range_2nd <- max(units_2nd_sem) - min(units_2nd_sem)  
+quartili_2nd <- quantile(units_2nd_sem, probs = c(0.25, 0.50, 0.75))
+iqr_2nd <- IQR(units_2nd_sem)  
+cv_2nd <- (dev_standard_2nd / media_2nd) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi - 1° Semestre:\n")
+cat("Media:", round(media_1st, 2), "\n")
+cat("Mediana:", round(mediana_1st, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_1st, 2), "\n")
+cat("Varianza:", round(varianza_1st, 2), "\n")
+cat("Skewness:", round(skewness_1st, 2), "\n")
+cat("Curtosi:", round(kurtosis_1st, 2), "\n")
+cat("Range:", range_1st, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_1st, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_1st, 2), "%\n\n")
+
+cat("Indici di sintesi - 2° Semestre:\n")
+cat("Media:", round(media_2nd, 2), "\n")
+cat("Mediana:", round(mediana_2nd, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_2nd, 2), "\n")
+cat("Varianza:", round(varianza_2nd, 2), "\n")
+cat("Skewness:", round(skewness_2nd, 2), "\n")
+cat("Curtosi:", round(kurtosis_2nd, 2), "\n")
+cat("Range:", range_2nd, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_2nd, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_2nd, 2), "%\n")
+
+```
+```{r}
+# CURRICULAR UNITS WITHOUT EVALUATIONS
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+# Controllo se le colonne esistono
+if (!"Curricular_units_1st_sem_(without_evaluations)" %in% colnames(data) | 
+    !"Curricular_units_2nd_sem_(without_evaluations)" %in% colnames(data)) {
+  stop("Una o entrambe le colonne non esistono nel dataset.")
+}
+
+# Rimozione di eventuali valori mancanti
+units_1st_sem <- na.omit(data$`Curricular_units_1st_sem_(without_evaluations)`)
+units_2nd_sem <- na.omit(data$`Curricular_units_2nd_sem_(without_evaluations)`)
+
+# Definizione dei limiti comuni per l'asse X (arrotondando per sicurezza)
+min_x <- floor(min(c(units_1st_sem, units_2nd_sem)))
+max_x <- ceiling(max(c(units_1st_sem, units_2nd_sem)))
+
+# Definizione dei limiti comuni per l'asse Y degli istogrammi
+max_y_hist <- max(table(units_1st_sem) / length(units_1st_sem) * 100,
+                  table(units_2nd_sem) / length(units_2nd_sem) * 100) * 1.2
+
+### 📌 ISTOGRAMMI ###
+# Istogramma per il 1° semestre
+hist_1st <- ggplot(data, aes(x = `Curricular_units_1st_sem_(without_evaluations)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_1st_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#1f77b4") +  # Blu
+  labs(subtitle = "Histogram: 1st Semester",
+       x = "Units Without Evaluation",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min_x, max_x, by = 3)) +  # SOLO valori interi
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist), xlim = c(min_x, max_x))
+
+# Istogramma per il 2° semestre
+hist_2nd <- ggplot(data, aes(x = `Curricular_units_2nd_sem_(without_evaluations)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_2nd_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#ff7f0e") +  # Arancione
+  labs(subtitle = "Histogram: 2nd Semester",
+       x = "Units Without Evaluation",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min_x, max_x, by = 3)) +  # SOLO valori interi
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist), xlim = c(min_x, max_x))
+
+### 📌 BOXPLOT ###
+# Definizione degli stessi limiti Y per i boxplot
+max_y_box <- max(max(units_1st_sem), max(units_2nd_sem)) * 1.1
+
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `Curricular_units_1st_sem_(without_evaluations)`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Units Without Evaluation") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `Curricular_units_2nd_sem_(without_evaluations)`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Units Without Evaluation") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+### 📌 COMBINAZIONE DEI 4 GRAFICI ###
+combined_plot <- (hist_1st | box_1st) /
+                 (hist_2nd | box_2nd) +
+  plot_annotation(title = "Curricular Units Without Evaluations") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Curricular_Units_Without_Evaluations.pdf", 
+       plot = combined_plot, width = 16, height = 10)
+
+
+### 📌 CALCOLO INDICI STATISTICI ###
+# 1° semestre
+media_1st <- mean(units_1st_sem)  
+mediana_1st <- median(units_1st_sem)  
+dev_standard_1st <- sd(units_1st_sem)  
+varianza_1st <- var(units_1st_sem)  
+skewness_1st <- skewness(units_1st_sem)  
+kurtosis_1st <- kurtosis(units_1st_sem)  
+range_1st <- max(units_1st_sem) - min(units_1st_sem)  
+quartili_1st <- quantile(units_1st_sem, probs = c(0.25, 0.50, 0.75))
+iqr_1st <- IQR(units_1st_sem)  
+cv_1st <- (dev_standard_1st / media_1st) * 100  
+
+# 2° semestre
+media_2nd <- mean(units_2nd_sem)  
+mediana_2nd <- median(units_2nd_sem)  
+dev_standard_2nd <- sd(units_2nd_sem)  
+varianza_2nd <- var(units_2nd_sem)  
+skewness_2nd <- skewness(units_2nd_sem)  
+kurtosis_2nd <- kurtosis(units_2nd_sem)  
+range_2nd <- max(units_2nd_sem) - min(units_2nd_sem)  
+quartili_2nd <- quantile(units_2nd_sem, probs = c(0.25, 0.50, 0.75))
+iqr_2nd <- IQR(units_2nd_sem)  
+cv_2nd <- (dev_standard_2nd / media_2nd) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi - 1° Semestre:\n")
+cat("Media:", round(media_1st, 2), "\n")
+cat("Mediana:", round(mediana_1st, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_1st, 2), "\n")
+cat("Varianza:", round(varianza_1st, 2), "\n")
+cat("Skewness:", round(skewness_1st, 2), "\n")
+cat("Curtosi:", round(kurtosis_1st, 2), "\n")
+cat("Range:", range_1st, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_1st, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_1st, 2), "%\n\n")
+
+cat("Indici di sintesi - 2° Semestre:\n")
+cat("Media:", round(media_2nd, 2), "\n")
+cat("Mediana:", round(mediana_2nd, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_2nd, 2), "\n")
+cat("Varianza:", round(varianza_2nd, 2), "\n")
+cat("Skewness:", round(skewness_2nd, 2), "\n")
+cat("Curtosi:", round(kurtosis_2nd, 2), "\n")
+cat("Range:", range_2nd, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_2nd, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_2nd, 2), "%\n")
+
+```
+```{r}
+# CURRICULAR UNITS APPROVED ANALYSIS
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+# Controllo se le colonne esistono
+if (!"Curricular_units_1st_sem_(approved)" %in% colnames(data) | 
+    !"Curricular_units_2nd_sem_(approved)" %in% colnames(data)) {
+  stop("Una o entrambe le colonne non esistono nel dataset.")
+}
+
+# Rimozione di eventuali valori mancanti
+units_1st_sem <- na.omit(data$`Curricular_units_1st_sem_(approved)`)
+units_2nd_sem <- na.omit(data$`Curricular_units_2nd_sem_(approved)`)
+
+# Definizione dei limiti comuni per l'asse X (arrotondando per sicurezza)
+min_x <- floor(min(c(units_1st_sem, units_2nd_sem)))
+max_x <- ceiling(max(c(units_1st_sem, units_2nd_sem)))
+
+# Definizione dei limiti comuni per l'asse Y degli istogrammi
+max_y_hist <- max(table(units_1st_sem) / length(units_1st_sem) * 100,
+                  table(units_2nd_sem) / length(units_2nd_sem) * 100) * 1.2
+
+### 📌 ISTOGRAMMI ###
+# Istogramma per il 1° semestre
+hist_1st <- ggplot(data, aes(x = `Curricular_units_1st_sem_(approved)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_1st_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#1f77b4") +  # Blu
+  labs(subtitle = "Histogram: 1st Semester",
+       x = "Units Approved",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min_x, max_x, by = 5)) +  # SOLO valori interi
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist), xlim = c(min_x, max_x))
+
+# Istogramma per il 2° semestre
+hist_2nd <- ggplot(data, aes(x = `Curricular_units_2nd_sem_(approved)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_2nd_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#ff7f0e") +  # Arancione
+  labs(subtitle = "Histogram: 2nd Semester",
+       x = "Units Approved",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min_x, max_x, by = 5)) +  # SOLO valori interi
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist), xlim = c(min_x, max_x))
+
+### 📌 BOXPLOT ###
+# Definizione degli stessi limiti Y per i boxplot
+max_y_box <- max(max(units_1st_sem), max(units_2nd_sem)) * 1.1
+
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `Curricular_units_1st_sem_(approved)`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Units Approved") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `Curricular_units_2nd_sem_(approved)`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Units Approved") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+### 📌 COMBINAZIONE DEI 4 GRAFICI ###
+combined_plot <- (hist_1st | box_1st) /
+                 (hist_2nd | box_2nd) +
+  plot_annotation(title = "Curricular Units Approved") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Curricular_Units_Approved.pdf", 
+       plot = combined_plot, width = 16, height = 10)
+
+
+### 📌 CALCOLO INDICI STATISTICI ###
+# 1° semestre
+media_1st <- mean(units_1st_sem)  
+mediana_1st <- median(units_1st_sem)  
+dev_standard_1st <- sd(units_1st_sem)  
+varianza_1st <- var(units_1st_sem)  
+skewness_1st <- skewness(units_1st_sem)  
+kurtosis_1st <- kurtosis(units_1st_sem)  
+range_1st <- max(units_1st_sem) - min(units_1st_sem)  
+quartili_1st <- quantile(units_1st_sem, probs = c(0.25, 0.50, 0.75))
+iqr_1st <- IQR(units_1st_sem)  
+cv_1st <- (dev_standard_1st / media_1st) * 100  
+
+# 2° semestre
+media_2nd <- mean(units_2nd_sem)  
+mediana_2nd <- median(units_2nd_sem)  
+dev_standard_2nd <- sd(units_2nd_sem)  
+varianza_2nd <- var(units_2nd_sem)  
+skewness_2nd <- skewness(units_2nd_sem)  
+kurtosis_2nd <- kurtosis(units_2nd_sem)  
+range_2nd <- max(units_2nd_sem) - min(units_2nd_sem)  
+quartili_2nd <- quantile(units_2nd_sem, probs = c(0.25, 0.50, 0.75))
+iqr_2nd <- IQR(units_2nd_sem)  
+cv_2nd <- (dev_standard_2nd / media_2nd) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi - 1° Semestre:\n")
+cat("Media:", round(media_1st, 2), "\n")
+cat("Mediana:", round(mediana_1st, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_1st, 2), "\n")
+cat("Varianza:", round(varianza_1st, 2), "\n")
+cat("Skewness:", round(skewness_1st, 2), "\n")
+cat("Curtosi:", round(kurtosis_1st, 2), "\n")
+cat("Range:", range_1st, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_1st, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_1st, 2), "%\n\n")
+
+cat("Indici di sintesi - 2° Semestre:\n")
+cat("Media:", round(media_2nd, 2), "\n")
+cat("Mediana:", round(mediana_2nd, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_2nd, 2), "\n")
+cat("Varianza:", round(varianza_2nd, 2), "\n")
+cat("Skewness:", round(skewness_2nd, 2), "\n")
+cat("Curtosi:", round(kurtosis_2nd, 2), "\n")
+cat("Range:", range_2nd, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_2nd, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_2nd, 2), "%\n")
+
+```
+
+```{r}
+# CURRICULAR UNITS GRADE ANALYSIS
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+# Controllo se le colonne esistono
+if (!"Curricular_units_1st_sem_(grade)" %in% colnames(data) | 
+    !"Curricular_units_2nd_sem_(grade)" %in% colnames(data)) {
+  stop("Una o entrambe le colonne non esistono nel dataset.")
+}
+
+# Rimozione di eventuali valori mancanti
+grades_1st_sem <- na.omit(data$`Curricular_units_1st_sem_(grade)`)
+grades_2nd_sem <- na.omit(data$`Curricular_units_2nd_sem_(grade)`)
+
+# Definizione dei limiti comuni per l'asse X (0-20 con step di 5)
+min_x <- 0
+max_x <- 20
+binwidth_value <- 1  # Assicura che ogni valore abbia il suo bin
+
+# Definizione dei limiti comuni per l'asse Y
+max_y_hist <- max(max(density(grades_1st_sem)$y), 
+                  max(density(grades_2nd_sem)$y)) * 1.2
+
+### 📌 ISTOGRAMMI CON FUNZIONE DI DENSITÀ ###
+# Istogramma con densità per il 1° semestre
+hist_density_1st <- ggplot(data, aes(x = `Curricular_units_1st_sem_(grade)`)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = binwidth_value, 
+                 color = "black", fill = "#1f77b4", alpha = 0.6, boundary = 0) +  # Blu
+  geom_density(color = "#f1c40f", size = 1) +  # Giallo
+  scale_x_continuous(breaks = seq(min_x, max_x, by = 5), limits = c(min_x, max_x)) +
+  scale_y_continuous(limits = c(0, max_y_hist)) +
+  labs(subtitle = "Histogram & Density: 1st Semester",
+       x = "Grade",
+       y = "Density") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Istogramma con densità per il 2° semestre
+hist_density_2nd <- ggplot(data, aes(x = `Curricular_units_2nd_sem_(grade)`)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = binwidth_value, 
+                 color = "black", fill = "#ff7f0e", alpha = 0.6, boundary = 0) +  # Arancione
+  geom_density(color = "#f1c40f", size = 1) +  # Giallo
+  scale_x_continuous(breaks = seq(min_x, max_x, by = 5), limits = c(min_x, max_x)) +
+  scale_y_continuous(limits = c(0, max_y_hist)) +
+  labs(subtitle = "Histogram & Density: 2nd Semester",
+       x = "Grade",
+       y = "Density") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+### 📌 BOXPLOT ###
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `Curricular_units_1st_sem_(grade)`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Grade") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  scale_y_continuous(breaks = seq(min_x, max_x, by = 5), limits = c(min_x, max_x)) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `Curricular_units_2nd_sem_(grade)`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Grade") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  scale_y_continuous(breaks = seq(min_x, max_x, by = 5), limits = c(min_x, max_x)) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+### 📌 COMBINAZIONE DEI 4 GRAFICI ###
+combined_plot <- (hist_density_1st | box_1st) /
+                 (hist_density_2nd | box_2nd) +
+  plot_annotation(title = "Curricular Units Grade Analysis") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Curricular_Units_Grade.pdf", 
+       plot = combined_plot, width = 16, height = 10)
+
+
+### 📌 CALCOLO INDICI STATISTICI ###
+# 1° semestre
+media_1st <- mean(grades_1st_sem)  
+mediana_1st <- median(grades_1st_sem)  
+dev_standard_1st <- sd(grades_1st_sem)  
+varianza_1st <- var(grades_1st_sem)  
+skewness_1st <- skewness(grades_1st_sem)  
+kurtosis_1st <- kurtosis(grades_1st_sem)  
+range_1st <- max(grades_1st_sem) - min(grades_1st_sem)  
+quartili_1st <- quantile(grades_1st_sem, probs = c(0.25, 0.50, 0.75))
+iqr_1st <- IQR(grades_1st_sem)  
+cv_1st <- (dev_standard_1st / media_1st) * 100  
+
+# 2° semestre
+media_2nd <- mean(grades_2nd_sem)  
+mediana_2nd <- median(grades_2nd_sem)  
+dev_standard_2nd <- sd(grades_2nd_sem)  
+varianza_2nd <- var(grades_2nd_sem)  
+skewness_2nd <- skewness(grades_2nd_sem)  
+kurtosis_2nd <- kurtosis(grades_2nd_sem)  
+range_2nd <- max(grades_2nd_sem) - min(grades_2nd_sem)  
+quartili_2nd <- quantile(grades_2nd_sem, probs = c(0.25, 0.50, 0.75))
+iqr_2nd <- IQR(grades_2nd_sem)  
+cv_2nd <- (dev_standard_2nd / media_2nd) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi - 1° Semestre:\n")
+cat("Media:", round(media_1st, 2), "\n")
+cat("Mediana:", round(mediana_1st, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_1st, 2), "\n")
+cat("Varianza:", round(varianza_1st, 2), "\n")
+cat("Skewness:", round(skewness_1st, 2), "\n")
+cat("Curtosi:", round(kurtosis_1st, 2), "\n")
+cat("Range:", range_1st, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_1st, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_1st, 2), "%\n\n")
+
+cat("Indici di sintesi - 2° Semestre:\n")
+cat("Media:", round(media_2nd, 2), "\n")
+cat("Mediana:", round(mediana_2nd, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_2nd, 2), "\n")
+cat("Varianza:", round(varianza_2nd, 2), "\n")
+cat("Skewness:", round(skewness_2nd, 2), "\n")
+cat("Curtosi:", round(kurtosis_2nd, 2), "\n")
+cat("Range:", range_2nd, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_2nd, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_2nd, 2), "%\n")
+
 ```
 

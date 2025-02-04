@@ -75,13 +75,15 @@ target_counts <- data %>%
          label = paste0(round(perc, 1), "%"))
 
 # Creazione del grafico a torta
-ggplot(target_counts, aes(x = "", y = count, fill = Target)) +
+p <- ggplot(target_counts, aes(x = "", y = count, fill = Target)) +
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y") +
-  labs(title = "Distribuzione della variabile Target") +
+  labs(title = "PieChart: Target") +
   theme_void() +
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_text(aes(label = label), position = position_stack(vjust = 0.5))
+
+ggsave("grafico_target.pdf", plot = p, width = 8, height = 6)
 ```
 Osservando il grafico possiamo notare che il dataset è fortemente sbilanciato: la classe Graduate rappresenta il 49.9% del dataset mentre la classe Enrolled rappresenta solamente il 17.9%.
 

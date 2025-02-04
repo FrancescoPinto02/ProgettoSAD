@@ -6,186 +6,488 @@ library(dplyr)
 
 # Caricamento Dataset
 data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
-
 head(data)
-# Estrai Fattori Socio-economici
-columns_to_extract <- data[, c("Mothers_qualification","Fathers_qualification", "Mothers_occupation", "Fathers_occupation", "Scholarship_holder", "Debtor", "Tuition_fees_up_to_date")]
-
-columns_to_extract$Debtor <- factor(columns_to_extract$Debtor, levels = c(0, 1), labels = c("NO", "YES"))
-columns_to_extract$Scholarship_holder <- factor(columns_to_extract$Scholarship_holder, levels = c(0, 1), labels = c("NO", "YES"))
-columns_to_extract$Tuition_fees_up_to_date <- factor(columns_to_extract$Tuition_fees_up_to_date, levels = c(0, 1), labels = c("NO", "YES"))
-
-
-# Funzione per creare i Barplot
-create_barplot <- function(freq, max_freq, main_title, xlab = "", ylab = "Frequenza Assoluta", col_palette = rainbow, labRotation = 1, catLabelSize=0.8, freqLabelSize=0.8) {
-  
-  bp <- barplot(freq, 
-                main = main_title,
-                xlab = xlab,
-                ylab = ylab,
-                ylim = c(0, max_freq * 1.3),
-                col = col_palette(length(freq)),
-                space = 1,
-                las = labRotation,
-                cex.names = catLabelSize)
-  
-  text(x = bp, y = freq, labels = freq, pos = 3, cex = freqLabelSize, col = "black")
-}
-
-for (col in colnames(columns_to_extract)) {
-  
-  freq <- table(columns_to_extract[[col]])
-  
-  if (col == "Mothers_qualification" | col == "Fathers_qualification" | col == "Mothers_occupation") {
-    labRotation <- 2  # Label Verticali
-    freqLabelSize <- 0.6
-    catLabelSize <- 0.8
-  } else if (col == "Fathers_occupation"){
-    labRotation <- 2
-    freqLabelSize <- 0.4
-    catLabelSize <- 0.6
-  }else{
-    labRotation <- 1  # Label Orizzontali
-    freqLabelSize <- 0.8
-    catLabelSize <- 0.8
-  }
-  
-  cleaned_col_name <- gsub("_", " ", col)
-  
-  # Creazione del file PDF
-  pdf_filename <- paste0("Grafici/Barplot_", gsub(" ", "_", cleaned_col_name), ".pdf")
-  # pdf(pdf_filename)
-  
-  # Creazione del Barplot
-  create_barplot(freq = freq, 
-                 max_freq = max(freq), 
-                 main_title = paste("Barplot:", cleaned_col_name), 
-                 xlab = cleaned_col_name, 
-                 ylab = "Frequenza Assoluta",
-                 labRotation = labRotation,
-                 freqLabelSize = freqLabelSize,
-                 catLabelSize = catLabelSize)
-  
-   #dev.off()
-}
 ```
 
 ```{r}
-# Librerie
+#SCHOLARSHIP HOLDER
+# Libreria necessaria
 library(ggplot2)
-library(dplyr)
 
+# Sostituzione dei valori 0 e 1
+data$Scholarship_holder <- factor(data$Scholarship_holder, levels = c(0, 1), labels = c("0-NO", "1-YES"))
 
-calculate_summary_stats <- function(data, feature) {
-  # Estrai la variabile specificata
-  variable <- data[[feature]]
-  
-  # Calcola le statistiche riepilogative
-  stats <- list(
-    Media = mean(variable, na.rm = TRUE),
-    Mediana = median(variable, na.rm = TRUE),
-    Moda = as.numeric(names(sort(table(variable), decreasing = TRUE)[1])),
-    Varianza = var(variable, na.rm = TRUE),
-    Deviazione_Standard = sd(variable, na.rm = TRUE),
-    Coefficiente_Variabilità = sd(variable, na.rm = TRUE) / mean(variable, na.rm = TRUE) * 100,
-    Quantile_1 = quantile(variable, 0.25, na.rm = TRUE),
-    Quantile_3 = quantile(variable, 0.75, na.rm = TRUE),
-    Minimo = min(variable, na.rm = TRUE),
-    Massimo = max(variable, na.rm = TRUE),
-    Range = max(variable, na.rm = TRUE) - min(variable, na.rm = TRUE),
-    IQR = IQR(variable, na.rm = TRUE)
-  )
-  
-  # Restituisci le statistiche
-  return(stats)
+# Calcolo delle frequenze relative
+freq_scholarship <- table(data$Scholarship_holder)
+scholarship_data <- data.frame(Scholarship = names(freq_scholarship), 
+                               Count = as.numeric(freq_scholarship))
+scholarship_data$Perc <- scholarship_data$Count / sum(scholarship_data$Count) * 100
+scholarship_data$Label <- paste0(round(scholarship_data$Perc, 1), "%")  
+
+# Creazione del grafico a torta 
+p <- ggplot(scholarship_data, aes(x = "", y = Count, fill = Scholarship)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y") +
+  theme_void() +
+  labs(title = "Pie Chart: Scholarship Holder", fill = "Legenda") +
+  geom_text(aes(label = Label), position = position_stack(vjust = 0.5)) +  
+  theme(plot.title = element_text(hjust = 0.5, face="bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/PieChart_Scholarship_Holder.pdf", plot = p, width = 10, height = 6)
+
+```
+
+```{r}
+#DEBTOR
+
+# Librerie necessarie
+library(ggplot2)
+
+# Sostituzione dei valori 0 e 1 con le etichette desiderate
+data$Debtor <- factor(data$Debtor, levels = c(0, 1), labels = c("0-NO", "1-YES"))
+
+# Calcolo delle frequenze relative
+freq_debtor <- table(data$Debtor)
+debtor_data <- data.frame(Debtor = names(freq_debtor), 
+                          Count = as.numeric(freq_debtor))
+debtor_data$Perc <- debtor_data$Count / sum(debtor_data$Count) * 100
+debtor_data$Label <- paste0(round(debtor_data$Perc, 1), "%")  
+
+# Creazione del grafico a torta 
+p <- ggplot(debtor_data, aes(x = "", y = Count, fill = Debtor)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y") +
+  theme_void() +
+  labs(title = "Pie Chart: Debtor", fill = "Legenda") +
+  geom_text(aes(label = Label), position = position_stack(vjust = 0.5)) +  
+  scale_fill_manual(values = c("#E69F00", "#56B4E9")) +  
+  theme(plot.title = element_text(hjust = 0.5, face="bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/PieChart_Debtor.pdf", plot = p, width = 10, height = 6)
+```
+
+```{r}
+# TUITION FEES
+
+# Librerie necessarie
+library(ggplot2)
+
+# Sostituzione dei valori 0 e 1 con le etichette desiderate
+data$Tuition_fees_up_to_date <- factor(data$Tuition_fees_up_to_date, levels = c(0, 1), labels = c("0-NO", "1-YES"))
+
+# Calcolo delle frequenze relative
+freq_tuition <- table(data$Tuition_fees_up_to_date)
+tuition_data <- data.frame(TuitionStatus = names(freq_tuition), 
+                           Count = as.numeric(freq_tuition))
+tuition_data$Perc <- tuition_data$Count / sum(tuition_data$Count) * 100
+tuition_data$Label <- paste0(round(tuition_data$Perc, 1), "%")  
+
+# Creazione del grafico a torta 
+p <- ggplot(tuition_data, aes(x = "", y = Count, fill = TuitionStatus)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y") +
+  theme_void() +
+  labs(title = "Pie Chart: Tuition Fees Up-to-Date", fill = "Legenda") +
+  geom_text(aes(label = Label), position = position_stack(vjust = 0.5)) +  
+  scale_fill_manual(values = c("#009E73", "#D55E00")) + 
+  theme(plot.title = element_text(hjust = 0.5, face="bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/PieChart_Tuition_Fees_Up_to_Date.pdf", plot = p, width = 10, height = 6)
+```
+
+```{r}
+# DISPLACED
+
+# Librerie necessarie
+library(ggplot2)
+
+# Sostituzione dei valori 0 e 1 con le etichette desiderate
+data$Displaced <- factor(data$Displaced, levels = c(0, 1), labels = c("0-NO", "1-YES"))
+
+# Calcolo delle frequenze relative
+freq_displaced <- table(data$Displaced)
+displaced_data <- data.frame(Displaced = names(freq_displaced), 
+                             Count = as.numeric(freq_displaced))
+displaced_data$Perc <- displaced_data$Count / sum(displaced_data$Count) * 100
+displaced_data$Label <- paste0(round(displaced_data$Perc, 1), "%")
+
+# Creazione del grafico a torta 
+p <- ggplot(displaced_data, aes(x = "", y = Count, fill = Displaced)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y") +
+  theme_void() +
+  labs(title = "Pie Chart: Displaced", fill = "Legenda") +
+  geom_text(aes(label = Label), position = position_stack(vjust = 0.5)) +
+  scale_fill_manual(values = c("#CC79A7", "#0072B2")) +  # Mantiene i colori originali
+  theme(plot.title = element_text(hjust = 0.5, face="bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/PieChart_Displaced.pdf", plot = p, width = 10, height = 6)
+
+```
+
+```{r}
+# MOTHER AND FATHER QUALIFICATION
+
+# Librerie necessarie
+library(ggplot2)
+
+# Calcolo delle frequenze relative per Mothers_qualification
+freq_mother_qual <- table(data$Mothers_qualification)
+mother_qual_data <- data.frame(Mothers_qualification = names(freq_mother_qual), 
+                               Count = as.numeric(freq_mother_qual))
+mother_qual_data$Perc <- mother_qual_data$Count / sum(mother_qual_data$Count) * 100
+
+# Calcolo delle frequenze relative per Fathers_qualification
+freq_father_qual <- table(data$Fathers_qualification)
+father_qual_data <- data.frame(Fathers_qualification = names(freq_father_qual), 
+                               Count = as.numeric(freq_father_qual))
+father_qual_data$Perc <- father_qual_data$Count / sum(father_qual_data$Count) * 100
+
+# Determinare il valore massimo comune per l'asse y
+max_y <- max(mother_qual_data$Perc, father_qual_data$Perc)
+
+# Ordinamento numerico delle categorie
+mother_qual_data$Mothers_qualification <- factor(mother_qual_data$Mothers_qualification, 
+                                                 levels = sort(as.numeric(unique(mother_qual_data$Mothers_qualification))))
+father_qual_data$Fathers_qualification <- factor(father_qual_data$Fathers_qualification, 
+                                                 levels = sort(as.numeric(unique(father_qual_data$Fathers_qualification))))
+
+# Creazione del barplot per Mother's Qualification
+p1 <- ggplot(mother_qual_data, aes(x = Mothers_qualification, y = Perc, fill = Mothers_qualification)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  labs(title = "Barplot: Mother's Qualification", x = "Qualification", y = "Frequenza Relativa (%)") + 
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5,
+            size = 3) + 
+  ylim(0, max_y) +  # Imposta lo stesso limite massimo
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), 
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Barplot_Mothers_Qualification.pdf", plot = p1, width = 10, height = 6)
+
+# Creazione del barplot per Father's Qualification
+p2 <- ggplot(father_qual_data, aes(x = Fathers_qualification, y = Perc, fill = Fathers_qualification)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  labs(title = "Barplot: Father's Qualification", x = "Qualification", y = "Frequenza Relativa (%)") + 
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5,
+            size = 3) + 
+  ylim(0, max_y) +  # Imposta lo stesso limite massimo
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), 
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Barplot_Fathers_Qualification.pdf", plot = p2, width = 10, height = 6)
+
+```
+
+```{r}
+# MOTHER AND FATHER OCCUPATION
+
+# Librerie necessarie
+library(ggplot2)
+
+# Calcolo delle frequenze relative per Mothers_occupation
+freq_mother_occ <- table(data$Mothers_occupation)
+mother_occ_data <- data.frame(Mothers_occupation = names(freq_mother_occ), 
+                              Count = as.numeric(freq_mother_occ))
+mother_occ_data$Perc <- mother_occ_data$Count / sum(mother_occ_data$Count) * 100
+
+# Calcolo delle frequenze relative per Fathers_occupation
+freq_father_occ <- table(data$Fathers_occupation)
+father_occ_data <- data.frame(Fathers_occupation = names(freq_father_occ), 
+                              Count = as.numeric(freq_father_occ))
+father_occ_data$Perc <- father_occ_data$Count / sum(father_occ_data$Count) * 100
+
+# Determinare il valore massimo tra i due dataset
+max_y <- max(mother_occ_data$Perc, father_occ_data$Perc)
+
+# Ordinamento numerico delle categorie (1, 2, 3, ...) invece che per frequenza
+mother_occ_data$Mothers_occupation <- factor(mother_occ_data$Mothers_occupation, 
+                                             levels = sort(as.numeric(unique(mother_occ_data$Mothers_occupation))))
+father_occ_data$Fathers_occupation <- factor(father_occ_data$Fathers_occupation, 
+                                             levels = sort(as.numeric(unique(father_occ_data$Fathers_occupation))))
+
+# Creazione del barplot per Mother's Occupation
+p1 <- ggplot(mother_occ_data, aes(x = Mothers_occupation, y = Perc, fill = Mothers_occupation)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  labs(title = "Barplot: Mother's Occupation", x = "Occupation", y = "Frequenza Relativa (%)") + 
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5,
+            size = 3) + 
+  ylim(0, max_y) +  # Imposta lo stesso limite massimo
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), 
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Barplot_Mothers_Occupation.pdf", plot = p1, width = 12, height = 6)
+
+# Creazione del barplot per Father's Occupation
+p2 <- ggplot(father_occ_data, aes(x = Fathers_occupation, y = Perc, fill = Fathers_occupation)) +
+  geom_bar(stat = "identity", width = 0.7, show.legend = FALSE) +
+  labs(title = "Barplot: Father's Occupation", x = "Occupation", y = "Frequenza Relativa (%)") + 
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            vjust = -0.3, size = 2.5) +  # Testo più piccolo e posizionato sopra la barra
+  ylim(0, max_y) +  # Imposta lo stesso limite massimo
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), 
+        axis.text.x = element_text(angle = 45, hjust = 1)) # Ruota le categorie dell'asse X
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Barplot_Fathers_Occupation.pdf", plot = p2, width = 12, height = 6)
+```
+
+```{r}
+# GDP ANALYSIS
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+# Controllo se la colonna esiste
+if (!"GDP" %in% colnames(data)) {
+  stop("La colonna 'GDP' non esiste nel dataset.")
 }
 
+# Rimozione di eventuali valori mancanti
+gdp_data <- na.omit(data$GDP)
 
-# Funzione per Creare Istogrammi con Densità
-create_histogram <- function(data, feature, output_dir = "Grafici", xlim) {
-  cleaned_feature_name <- gsub("_", " ", feature)
-  feature_data <- data[[feature]]
-  
-  # Salvataggio in PDF
-  # pdf(file = paste0(output_dir, "/DensityPlot_", gsub(" ", "_", cleaned_feature_name), ".pdf"))
-  
-  hist(feature_data,
-       main = paste("Density Plot:", cleaned_feature_name),
-       xlab = cleaned_feature_name,
-       ylab = "Densità",
-       col = "lightblue",
-       border = "darkblue",
-       freq = FALSE,
-       xlim = xlim)
-  grid()
-  
-  dens <- density(feature_data, na.rm = TRUE)
-  lines(dens, col = "red", lwd = 2)
-  
-  # dev.off()
+# Istogramma con densità
+hist_density_plot <- ggplot(data, aes(x = GDP)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = diff(range(gdp_data)) / 30,  
+                 color = "black", fill = "#1f77b4", alpha = 0.6) +  # Blu
+  geom_density(color = "#ff7f0e", size = 1) +  # Arancione
+  xlim(-5, 5) +
+  labs(subtitle = "Histogram & Density Function",
+       x = "GDP Change (%)",
+       y = "Density") +
+  theme_minimal()+
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Boxplot affiancato
+box_plot <- ggplot(data, aes(x = "", y = GDP)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +  # Azzurro
+  labs(subtitle = "Boxplot", y = "GDP Change (%)") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Combinazione dei grafici
+combined_plot <- (hist_density_plot | box_plot) + 
+  plot_annotation(title = "GDP") & 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_GDP.pdf", plot = combined_plot, width = 16, height = 6)
+
+# Calcolo degli indici di sintesi
+media <- mean(gdp_data)  
+mediana <- median(gdp_data)  
+moda <- as.numeric(names(sort(table(gdp_data), decreasing = TRUE)[1]))  
+dev_standard <- sd(gdp_data)  
+varianza <- var(gdp_data)  
+skewness_value <- skewness(gdp_data)  
+kurtosis_value <- kurtosis(gdp_data)  
+range_value <- max(gdp_data) - min(gdp_data)  
+quartili <- quantile(gdp_data, probs = c(0.25, 0.50, 0.75))
+iqr_value <- IQR(gdp_data)  
+cv <- (dev_standard / media) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi di GDP:\n")
+cat("Media:", round(media, 2), "\n")
+cat("Mediana:", round(mediana, 2), "\n")
+cat("Moda:", moda, "\n")
+cat("Deviazione Standard:", round(dev_standard, 2), "\n")
+cat("Varianza:", round(varianza, 2), "\n")
+cat("Skewness (Asimmetria):", round(skewness_value, 2), "\n")
+cat("Curtosi:", round(kurtosis_value, 2), "\n")
+cat("Range:", range_value, "\n")
+cat("1° Quartile (Q1):", quartili[1], "\n")
+cat("2° Quartile (Mediana - Q2):", quartili[2], "\n")
+cat("3° Quartile (Q3):", quartili[3], "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_value, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv, 2), "%\n")
+```
+
+```{r}
+# UNEMPLOYMENT RATE ANALYSIS
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+# Controllo se la colonna esiste
+if (!"Unemployment_rate" %in% colnames(data)) {
+  stop("La colonna 'Unemployment_rate' non esiste nel dataset.")
 }
 
-# Funzione per Creare Boxplot
-create_boxplot <- function(data, feature, output_dir = "Grafici") {
-  cleaned_feature_name <- gsub("_", " ", feature)
-  feature_data <- data[[feature]]
-  
-  if (all(is.na(feature_data))) {
-    cat("La feature", feature, "contiene solo valori NA. Boxplot non creato.\n")
-    return()
-  }
-  
-  # Creazione del Boxplot
-  p <- ggplot(data, aes(x = .data[[feature]], y = "")) +
-    geom_boxplot(fill = "lightblue", color = "darkblue", width = 0.3) +
-    labs(title = paste("Boxplot:", cleaned_feature_name),
-         x = cleaned_feature_name) +
-    theme_minimal() +
-    stat_boxplot(geom = "errorbar", width = 0.15) +
-    theme(axis.title.y = element_blank(),
-          axis.text.y = element_blank(),   
-          axis.ticks.y = element_blank(),
-          plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2))
-  
-  # Salvataggio in PDF
-  #pdf(file = paste0(output_dir, "/Boxplot_", gsub(" ", "_", cleaned_feature_name), ".pdf"))
-  
-  print(p)
-  
-  #dev.off()
-  
+# Rimozione di eventuali valori mancanti
+unemployment_data <- na.omit(data$Unemployment_rate)
+
+# Istogramma con densità
+hist_density_plot <- ggplot(data, aes(x = Unemployment_rate)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = diff(range(unemployment_data)) / 30,  
+                 color = "black", fill = "#2ca02c", alpha = 0.6) +  # Verde
+  geom_density(color = "#9467bd", size = 1) +  # Viola
+  xlim(6, 18) +
+  labs(subtitle = "Histogram & Density Function",
+       x = "Unemployment Rate (%)",
+       y = "Density") +
+  theme_minimal()+
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Boxplot affiancato
+box_plot <- ggplot(data, aes(x = "", y = Unemployment_rate)) +
+  geom_boxplot(fill = "#98df8a", color = "darkgreen", width = 0.3) +  # Verde chiaro
+  labs(subtitle = "Boxplot", y = "Unemployment Rate (%)") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Combinazione dei grafici
+combined_plot <- (hist_density_plot | box_plot) + 
+  plot_annotation(title = "Unemployment Rate Analysis") & 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Unemployment.pdf", plot = combined_plot, width = 16, height = 6)
+
+# Calcolo degli indici di sintesi
+media <- mean(unemployment_data)  
+mediana <- median(unemployment_data)  
+moda <- as.numeric(names(sort(table(unemployment_data), decreasing = TRUE)[1]))  
+dev_standard <- sd(unemployment_data)  
+varianza <- var(unemployment_data)  
+skewness_value <- skewness(unemployment_data)  
+kurtosis_value <- kurtosis(unemployment_data)  
+range_value <- max(unemployment_data) - min(unemployment_data)  
+quartili <- quantile(unemployment_data, probs = c(0.25, 0.50, 0.75))
+iqr_value <- IQR(unemployment_data)  
+cv <- (dev_standard / media) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi di Unemployment Rate:\n")
+cat("Media:", round(media, 2), "\n")
+cat("Mediana:", round(mediana, 2), "\n")
+cat("Moda:", moda, "\n")
+cat("Deviazione Standard:", round(dev_standard, 2), "\n")
+cat("Varianza:", round(varianza, 2), "\n")
+cat("Skewness (Asimmetria):", round(skewness_value, 2), "\n")
+cat("Curtosi:", round(kurtosis_value, 2), "\n")
+cat("Range:", range_value, "\n")
+cat("1° Quartile (Q1):", quartili[1], "\n")
+cat("2° Quartile (Mediana - Q2):", quartili[2], "\n")
+cat("3° Quartile (Q3):", quartili[3], "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_value, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv, 2),"%\n")
+```
+
+```{r}
+# INFLATION RATE
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+# Controllo se la colonna esiste
+if (!"Inflation_rate" %in% colnames(data)) {
+  stop("La colonna 'Inflation_rate' non esiste nel dataset.")
 }
 
+# Rimozione di eventuali valori mancanti
+inflation_data <- na.omit(data$Inflation_rate)
 
-features_to_plot <- c("Unemployment_rate", "Inflation_rate", "GDP")
+# Istogramma con densità
+hist_density_plot <- ggplot(data, aes(x = Inflation_rate)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = diff(range(inflation_data)) / 30,  
+                 color = "black", fill = "#d62728", alpha = 0.6) +  # Rosso
+  geom_density(color = "#f1c40f", size = 1) +  # Giallo
+  xlim(-1.5, 4.5) +
+  labs(subtitle = "Histogram & Density Function",
+       x = "Inflation Rate (%)",
+       y = "Density") +
+  theme_minimal()+
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
 
-for (feature in features_to_plot) {
-  cat("\n=== Statistiche per:", feature, "===\n")
-  stats <- calculate_summary_stats(data, feature)
-  print(stats)
-  cat("===========================================\n")
-}
+# Boxplot affiancato
+box_plot <- ggplot(data, aes(x = "", y = Inflation_rate)) +
+  geom_boxplot(fill = "#ff9896", color = "darkred", width = 0.3) +  # Rosso chiaro
+  labs(subtitle = "Boxplot", y = "Inflation Rate (%)") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
 
+# Combinazione dei grafici
+combined_plot <- (hist_density_plot | box_plot) + 
+  plot_annotation(title = "Inflation Rate Analysis") & 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
 
-for (feature in features_to_plot) {
-  
-  if(feature == "Unemployment_rate"){
-    xlim=c(6,18)
-  }
-  if(feature == "Inflation_rate"){
-    xlim=c(-1.5,4.5)
-  }
-  if(feature == "GDP"){
-    xlim=c(-5,4.5)
-  }
-  
-  
-  create_histogram(data = data, feature = feature, xlim=xlim)
-  
-  create_boxplot(data = data, feature = feature)
-  
-}
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Inflation.pdf", plot = combined_plot, width = 16, height = 6)
 
+# Calcolo degli indici di sintesi
+media <- mean(inflation_data)  
+mediana <- median(inflation_data)  
+moda <- as.numeric(names(sort(table(inflation_data), decreasing = TRUE)[1]))  
+dev_standard <- sd(inflation_data)  
+varianza <- var(inflation_data)  
+skewness_value <- skewness(inflation_data)  
+kurtosis_value <- kurtosis(inflation_data)  
+range_value <- max(inflation_data) - min(inflation_data)  
+quartili <- quantile(inflation_data, probs = c(0.25, 0.50, 0.75))
+iqr_value <- IQR(inflation_data)  
+cv <- (dev_standard / media) * 100  
 
+# Stampa dei risultati
+cat("Indici di sintesi di Inflation Rate:\n")
+cat("Media:", round(media, 2), "\n")
+cat("Mediana:", round(mediana, 2), "\n")
+cat("Moda:", moda, "\n")
+cat("Deviazione Standard:", round(dev_standard, 2), "\n")
+cat("Varianza:", round(varianza, 2), "\n")
+cat("Skewness (Asimmetria):", round(skewness_value, 2), "\n")
+cat("Curtosi:", round(kurtosis_value, 2), "\n")
+cat("Range:", range_value, "\n")
+cat("1° Quartile (Q1):", quartili[1], "\n")
+cat("2° Quartile (Mediana - Q2):", quartili[2], "\n")
+cat("3° Quartile (Q3):", quartili[3], "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_value, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv, 2), "%\n")
 ```
 
