@@ -134,28 +134,51 @@ ggsave("Grafici/PieChart_Displaced.pdf", plot = p2, width = 10, height = 6)
 # Librerie
 library(ggplot2)
 
-# Sostituzione dei valori numerici con le etichette corrispondenti
-data$Application_order <- factor(data$Application_order, 
-                                 levels = c(0, 1, 2, 3, 4, 5, 6, 9), 
-                                 labels = c("0", "1st", "2nd", "3rd", "4th", "5th", "6th", "9th"))
+# Creazione del grafico originale
+original_freq_application <- table(data$Application_order)
+print(original_freq_application)
+original_application_data <- data.frame(Order = names(original_freq_application), 
+                                        Count = as.numeric(original_freq_application))
+original_application_data$Perc <- original_application_data$Count / sum(original_application_data$Count) * 100
 
-# Calcolo delle frequenze relative per Application Order
-freq_application <- table(data$Application_order)
-application_data <- data.frame(Order = names(freq_application), 
-                               Count = as.numeric(freq_application))
-application_data$Perc <- application_data$Count / sum(application_data$Count) * 100
-
-# Creazione del barplot senza legenda
-p <- ggplot(application_data, aes(x = Order, y = Perc, fill = Order)) +
+p_original <- ggplot(original_application_data, aes(x = Order, y = Perc, fill = Order)) +
   geom_bar(stat = "identity", width = 0.7) +
-  labs(title = "Barplot: Application Order", x = "Application Order", y = "Frequenza Relativa (%)") +
+  labs(title = "Barplot: Application Order (Original)", x = "Application Order", y = "Frequenza Relativa (%)") +
   theme_minimal() +
   geom_text(aes(label = paste0(round(Perc, 1), "%")), vjust = -0.5, size = 4) +
   theme(plot.title = element_text(hjust = 0.5, face="bold"),
         legend.position = "none")  # Rimuove la legenda
 
-# Salvataggio del grafico in PDF
-ggsave("Grafici/Barplot_Application_Order.pdf", plot = p, width = 10, height = 6)
+# Salvataggio del grafico originale
+ggsave("Grafici/Barplot_Application_Order_Original.pdf", plot = p_original, width = 10, height = 6)
+
+# Sostituzione dei valori 0 con 1 e 9 con 6
+data$Application_order[data$Application_order == 0] <- 1
+data$Application_order[data$Application_order == 9] <- 6
+
+# Convertire in fattore con le etichette aggiornate
+data$Application_order <- factor(data$Application_order, 
+                                 levels = c(1, 2, 3, 4, 5, 6), 
+                                 labels = c("1st", "2nd", "3rd", "4th", "5th", "6th"))
+
+# Calcolo delle frequenze relative per Application Order dopo la rimozione dell'anomalia
+freq_application <- table(data$Application_order)
+print(freq_application)
+application_data <- data.frame(Order = names(freq_application), 
+                               Count = as.numeric(freq_application))
+application_data$Perc <- application_data$Count / sum(application_data$Count) * 100
+
+# Creazione del barplot senza legenda dopo la rimozione dell'anomalia
+p <- ggplot(application_data, aes(x = Order, y = Perc, fill = Order)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  labs(title = "Barplot: Application Order (Modified)", x = "Application Order", y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), vjust = -0.5, size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face="bold"),
+        legend.position = "none")  # Rimuove la legenda
+
+# Salvataggio del grafico modificato
+ggsave("Grafici/Barplot_Application_Order_Modified.pdf", plot = p, width = 10, height = 6)
 ```
 
 ```{r}
@@ -197,6 +220,8 @@ ggsave("Grafici/Barplot_Application_Mode.pdf", plot = p1, width = 10, height = 6
 
 # Calcolo delle frequenze relative per Course
 freq_course <- table(data$Course)
+
+print(freq_course)
 course_data <- data.frame(Course = names(freq_course), 
                           Count = as.numeric(freq_course))
 course_data$Perc <- course_data$Count / sum(course_data$Count) * 100
@@ -228,6 +253,7 @@ ggsave("Grafici/Barplot_Course.pdf", plot = p2, width = 10, height = 6)
 
 # Calcolo delle frequenze relative per Previous_qualification
 freq_prev_qual <- table(data$Previous_qualification)
+print(freq_prev_qual)
 prev_qual_data <- data.frame(Previous_qualification = names(freq_prev_qual), 
                              Count = as.numeric(freq_prev_qual))
 prev_qual_data$Perc <- prev_qual_data$Count / sum(prev_qual_data$Count) * 100
@@ -273,7 +299,7 @@ prev_qual_grade_data <- na.omit(data$Previous_qualification_grade)
 # Istogramma con densità
 hist_density_plot <- ggplot(data, aes(x = Previous_qualification_grade)) +
   geom_histogram(aes(y = ..density..), 
-                 binwidth = diff(range(prev_qual_grade_data)) / 30,  
+                 binwidth = diff(range(prev_qual_grade_data)) / 50,  
                  color = "black", fill = "#1f77b4", alpha = 0.6) +  # Blu
   geom_density(color = "#d62728", size = 1) +  # Rosso
   xlim(95, 200) +
@@ -343,9 +369,9 @@ admission_grade_data <- na.omit(data$Admission_grade)
 # Istogramma con densità
 hist_density_plot <- ggplot(data, aes(x = Admission_grade)) +
   geom_histogram(aes(y = ..density..), 
-                 binwidth = diff(range(admission_grade_data)) / 30,  
+                 binwidth = diff(range(admission_grade_data)) / 50,  
                  color = "black", fill = "#ff7f0e", alpha = 0.6) +  # Arancione
-  geom_density(color = "#2ca02c", size = 1) +  # Verde
+  geom_density(color = "darkgreen", size = 1) +  # Verde
   xlim(95, 200) +
   labs(subtitle = "Histogram & Density Function",
        x = "Grade",

@@ -329,6 +329,11 @@ cat("2° Quartile (Mediana - Q2):", quartili[2], "\n")
 cat("3° Quartile (Q3):", quartili[3], "\n")
 cat("Intervallo Interquartile (IQR):", round(iqr_value, 2), "\n")
 cat("Coefficiente di Variazione (CV %):", round(cv, 2), "%\n")
+
+unique_gdp_values <- unique(data$GDP)
+
+# Stampa dei valori unici
+print(unique_gdp_values)
 ```
 
 ```{r}
@@ -409,6 +414,11 @@ cat("2° Quartile (Mediana - Q2):", quartili[2], "\n")
 cat("3° Quartile (Q3):", quartili[3], "\n")
 cat("Intervallo Interquartile (IQR):", round(iqr_value, 2), "\n")
 cat("Coefficiente di Variazione (CV %):", round(cv, 2),"%\n")
+
+unique_unemployment_values <- unique(data$Unemployment_rate)
+
+# Stampa dei valori unici
+print(unique_unemployment_values)
 ```
 
 ```{r}
@@ -489,5 +499,10 @@ cat("2° Quartile (Mediana - Q2):", quartili[2], "\n")
 cat("3° Quartile (Q3):", quartili[3], "\n")
 cat("Intervallo Interquartile (IQR):", round(iqr_value, 2), "\n")
 cat("Coefficiente di Variazione (CV %):", round(cv, 2), "%\n")
+
+unique_inflation_values <- unique(data$Inflation_rate)
+
+# Stampa dei valori unici
+print(unique_inflation_values)
 ```
 
