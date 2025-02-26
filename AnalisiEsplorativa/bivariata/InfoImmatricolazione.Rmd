@@ -162,3 +162,569 @@ for (feature in features_to_analyze) {
 }
 ```
 
+```{r}
+# ATTENDANCE
+# Librerie
+library(here)
+library(ggplot2)
+library(dplyr)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = TRUE)
+colnames(data)[colnames(data) == "Daytime.evening_attendance."] <- "Attendance"
+colnames(data)[colnames(data) == "Previous_qualification_.grade."] <- "Previous_qualification_grade"
+head(data)
+
+# Sostituzione dei valori numerici con le etichette corrispondenti
+data$Attendance <- factor(data$Attendance, 
+                      levels = c(0, 1), 
+                      labels = c("Evening", "Daytime"))
+
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Calcolo delle frequenze relative per ciascun gruppo Attendance
+freq_attendance <- data %>%
+  group_by(Attendance, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(Attendance) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+# Definizione della palette di colori 
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# Creazione del grouped barplot
+p <- ggplot(freq_attendance, aes(x = Attendance, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: Attendance/Target", 
+       x = "Attendance", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_Attendance_Target.pdf", plot = p, width = 10, height = 6)
+```
+
+
+```{r}
+# DISPLACED
+# Librerie
+library(ggplot2)
+library(dplyr)
+
+# Sostituzione dei valori numerici con le etichette corrispondenti
+data$Displaced <- factor(data$Displaced, 
+                      levels = c(0, 1), 
+                      labels = c("No", "Yes"))
+
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Calcolo delle frequenze relative per ciascun gruppo Displaced
+freq_displaced <- data %>%
+  group_by(Displaced, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(Displaced) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+# Definizione della palette di colori 
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# Creazione del grouped barplot
+p <- ggplot(freq_displaced, aes(x = Displaced, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: Displaced/Target", 
+       x = "Displaced", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_Displaced_Target.pdf", plot = p, width = 10, height = 6)
+
+```
+
+```{r}
+# INTERNATIONAL
+# Librerie
+library(ggplot2)
+library(dplyr)
+
+# Sostituzione dei valori numerici con le etichette corrispondenti
+data$International <- factor(data$International, 
+                      levels = c(0, 1), 
+                      labels = c("No", "Yes"))
+
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Calcolo delle frequenze relative per ciascun gruppo International
+freq_international <- data %>%
+  group_by(International, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(International) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+# Definizione della palette di colori 
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# Creazione del grouped barplot
+p <- ggplot(freq_international, aes(x = International, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: International/Target", 
+       x = "International", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_International_Target.pdf", plot = p, width = 10, height = 6)
+```
+
+```{r}
+# EDUCATIONAL SPECIAL NEEDS
+# Librerie
+library(ggplot2)
+library(dplyr)
+
+# Sostituzione dei valori numerici con le etichette corrispondenti
+data$Educational_special_needs <- factor(data$Educational_special_needs, 
+                      levels = c(0, 1), 
+                      labels = c("No", "Yes"))
+
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Calcolo delle frequenze relative per ciascun gruppo Educational Special Needs
+freq_educational <- data %>%
+  group_by(Educational_special_needs, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(Educational_special_needs) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+# Definizione della palette di colori 
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# Creazione del grouped barplot
+p <- ggplot(freq_educational, aes(x = Educational_special_needs, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: Educational Special Needs/Target", 
+       x = "Educational Special Needs", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_Educational_Special_Needs_Target.pdf", plot = p, width = 10, height = 6)
+```
+
+```{r}
+# APPLICATION ORDER
+# Librerie
+library(ggplot2)
+library(dplyr)
+
+# Sostituzione dei valori 0 con 1 e 9 con 6
+data$Application_order[data$Application_order == 0] <- 1
+data$Application_order[data$Application_order == 9] <- 6
+
+# Sostituzione dei valori numerici con le etichette corrispondenti
+data$Application_order <- factor(data$Application_order, 
+                      levels = c(1, 2, 3, 4, 5, 6), 
+                      labels = c("1st", "2nd", "3rd", "4th", "5th", "6th"))
+
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Calcolo delle frequenze relative per ciascun gruppo Application Order
+freq_application_order <- data %>%
+  group_by(Application_order, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(Application_order) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+# Definizione della palette di colori 
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# Creazione del grouped barplot
+p <- ggplot(freq_application_order, aes(x = Application_order, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: Application Order/Target", 
+       x = "Application Order", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_Application_Order_Target.pdf", plot = p, width = 10, height = 6)
+
+```
+
+```{r}
+#PREVIOUS QUALIFICATION GRADE
+
+# Caricamento Dataset
+library(here)
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+
+# Conversione della variabile numerica in un formato adatto per il violin plot
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Creazione del violin plot con boxplot sovrapposto e outlier visibili
+violin_box_plot <- ggplot(data, aes(x = Target, y = `Previous_qualification_(grade)`, fill = Target)) +
+  geom_violin(trim = FALSE, alpha = 0.6, color = "black") +
+  geom_boxplot(width = 0.15, color = "black", outlier.shape = 16, outlier.size = 2, alpha = 0.8) +
+  stat_boxplot(geom = "errorbar", width = 0.2, color = "black") +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(title = "Previous Qualification Grade / Target", 
+       subtitle = "Violin and Boxplot", 
+       x = "Target", 
+       y = "Previous Qualification Grade", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Violin_Boxplot_Previous_Qualification_Grade.pdf", plot = violin_box_plot, width = 16, height = 12)
+
+```
+
+```{r}
+#ADMISSION GRADE
+
+# Caricamento Dataset
+library(here)
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+
+# Conversione della variabile numerica in un formato adatto per il violin plot
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Creazione del violin plot con boxplot sovrapposto e outlier visibili
+violin_box_plot <- ggplot(data, aes(x = Target, y = `Admission_grade`, fill = Target)) +
+  geom_violin(trim = FALSE, alpha = 0.6, color = "black") +
+  geom_boxplot(width = 0.15, color = "black", outlier.shape = 16, outlier.size = 2, alpha = 0.8) +
+  stat_boxplot(geom = "errorbar", width = 0.2, color = "black") +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(title = "Admission Grade / Target", 
+       subtitle = "Violin and Boxplot", 
+       x = "Target", 
+       y = "Admission Grade", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Violin_Boxplot_Admission_Grade.pdf", plot = violin_box_plot, width = 16, height = 12)
+
+```
+
+```{r}
+# GROUPED BARPLOT: PREVIOUS_QUALIFICATION vs TARGET
+
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Convertire la variabile Target in fattore ordinato
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Creazione della variabile accorpata con la nuova suddivisione
+data$Previous_qualification_grouped <- recode(data$Previous_qualification,
+                                            # 1 - Higher Education
+                                            "2" = "1-Higher Education",  # Higher Education - Bachelor's Degree
+                                            "3" = "1-Higher Education",  # Higher Education - Degree
+                                            "4" = "1-Higher Education",  # Higher Education - Master's
+                                            "5" = "1-Higher Education",  # Higher Education - Doctorate
+                                            "40" = "1-Higher Education", # Higher Education - Degree (1st cycle)
+                                            "42" = "1-Higher Education", # Professional Higher Technical Course
+                                            "43" = "1-Higher Education", # Higher Education - Master (2nd cycle)
+                                            
+                                            # 2 - Secondary Education
+                                            "1" = "2-Secondary Education",  # Secondary Education - 12th Year of Schooling or Equivalent
+                                            "6" = "2-Secondary Education",  # Frequency of Higher Education (non completato, quindi accorpato a Secondary)
+                                            
+                                            # 4 - Technological
+                                            "39" = "3-Technological Specialization", # Technological Specialization Course
+                                            
+                                            
+                                            # 3 - Basic Education
+                                            "19" = "4-Basic Education", # Basic Education 3rd Cycle (9th/10th/11th Year) or Equivalent
+                                            "38" = "4-Basic Education", # Basic Education 2nd Cycle (6th/7th/8th Year) or Equivalent
+                                            "9" = "4-Basic Education",  # 12th Year of Schooling - Not Completed
+                                            "10" = "4-Basic Education", # 11th Year of Schooling - Not Completed
+                                            "12" = "4-Basic Education", # Other - 11th Year of Schooling
+                                            "14" = "4-Basic Education", # 10th Year of Schooling
+                                            "15" = "4-Basic Education") # 10th Year of Schooling - Not Completed
+                                            
+                                            
+
+# Convertire in fattore con ordine predefinito
+data$Previous_qualification_grouped <- factor(data$Previous_qualification_grouped, 
+                                            levels = c("1-Higher Education", 
+                                                       "2-Secondary Education",
+                                                       "3-Technological Specialization",
+                                                       "4-Basic Education"))
+
+
+# Calcolo delle frequenze relative per ciascun gruppo di Previous_qualification_grouped
+freq_previous_qual <- data %>%
+  group_by(Previous_qualification_grouped, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(Previous_qualification_grouped) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+# Definizione della palette di colori
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# Creazione del grouped barplot
+p <- ggplot(freq_previous_qual, aes(x = Previous_qualification_grouped, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: Previous Qualification/Target", 
+       x = "Previous Qualification", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(angle = 45, hjust = 1)) # Ruota le etichette per leggibilità
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_Previous_Qualification_Target.pdf", plot = p, width = 12, height = 6)
+
+# Mostrare il conteggio delle categorie accorpate
+print(freq_previous_qual)
+
+```
+```{r}
+# GROUPED BARPLOT: APPLICATION_MODE_GROUPED vs TARGET
+
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Convertire la variabile Target in fattore ordinato
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Creazione della variabile accorpata con la nuova suddivisione
+data$Application_mode_grouped <- recode(data$Application_mode,
+                                            # 1 - General Contingent
+                                            "1" = "1-General Contingent",  # 1st phase - general contingent
+                                            "17" = "1-General Contingent", # 2nd phase - general contingent
+                                            "18" = "1-General Contingent", # 3rd phase - general contingent
+                                            
+                                            # 2 - Transfers & Changes
+                                            "42" = "2-Transfers & Changes", # Transfer
+                                            "43" = "2-Transfers & Changes", # Change of course
+                                            "51" = "2-Transfers & Changes", # Change of institution/course
+                                            "57" = "2-Transfers & Changes", # Change of institution/course (International)
+                                            
+                                            # 3 - Older Students
+                                            "39" = "3-Over 23 years old", # Over 23 years old
+                                            
+                                            # 4 - Special Diplomas
+                                            "7" = "4-Special Diplomas", # Holders of other higher courses
+                                            "44" = "4-Special Diplomas", # Technological specialization diploma holders
+                                            "53" = "4-Special Diplomas", # Short cycle diploma holders
+                                            
+                                            # 5 - Special Contingent & Ordinances
+                                            "2" = "5-Special Contingent & Ordinances", # Ordinance No. 612/93
+                                            "5" = "5-Special Contingent & Ordinances", # 1st phase - special contingent (Azores Island)
+                                            "10" = "5-Special Contingent & Ordinances", # Ordinance No. 854-B/99
+                                            "15" = "5-Special Contingent & Ordinances", # International student (bachelor)
+                                            "16" = "5-Special Contingent & Ordinances", # 1st phase - special contingent (Madeira Island)
+                                            "26" = "5-Special Contingent & Ordinances", # Ordinance No. 533-A/99, item b2) (Different Plan)
+                                            "27" = "5-Special Contingent & Ordinances") # Ordinance No. 533-A/99, item b3 (Other Institution)
+
+# Convertire in fattore con ordine predefinito
+data$Application_mode_grouped <- factor(data$Application_mode_grouped, 
+                                        levels = c("1-General Contingent", 
+                                                   "2-Transfers & Changes", 
+                                                   "3-Over 23 years old",
+                                                   "4-Special Diplomas",
+                                                   "5-Special Contingent & Ordinances"))
+
+# Calcolo delle frequenze relative per ciascun gruppo di Application_mode_grouped
+freq_application_mode <- data %>%
+  group_by(Application_mode_grouped, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(Application_mode_grouped) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+# Definizione della palette di colori
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# Creazione del grouped barplot
+p <- ggplot(freq_application_mode, aes(x = Application_mode_grouped, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: Application Mode/Target", 
+       x = "Application Mode", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(angle = 45, hjust = 1)) # Ruota le etichette per leggibilità
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_Application_Mode_Target.pdf", plot = p, width = 12, height = 6)
+
+# Mostrare il conteggio delle categorie accorpate
+print(freq_application_mode)
+
+```
+
+```{r}
+# GROUPED BARPLOT: COURSE_GROUPED vs TARGET
+
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Convertire la variabile Target in fattore ordinato
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Creazione della variabile accorpata con label spezzate
+data$Course_grouped <- recode(data$Course,
+    "9500" = "1-Health\nSciences", 
+    "9556" = "1-Health\nSciences",
+    "9085" = "2-Veterinary\nSciences", 
+    "9130" = "2-Veterinary\nSciences",
+    "8014" = "3-Social\nSciences",
+    "9238" = "3-Social\nSciences",
+    "9773" = "3-Social\nSciences",
+    "9853" = "3-Social\nSciences",
+    "9147" = "4-Business\n& Management",
+    "9670" = "4-Business\n& Management",
+    "9991" = "4-Business\n& Management",
+    "171" = "5-Communication\n& Design",
+    "9070" = "5-Communication\n& Design",
+    "9119" = "6-Engineering\n& Technology",
+    "33" = "6-Engineering\n& Technology",
+    "9003" = "7-Agriculture\n& Environment",
+    "9254" = "8-Tourism\n& Services")
+
+# Convertire in fattore con ordine predefinito
+data$Course_grouped <- factor(data$Course_grouped, 
+                                        levels = c("1-Health\nSciences", 
+                                                   "2-Veterinary\nSciences",
+                                                   "3-Social\nSciences", 
+                                                   "4-Business\n& Management",
+                                                   "5-Communication\n& Design",
+                                                   "6-Engineering\n& Technology",
+                                                   "7-Agriculture\n& Environment",
+                                                   "8-Tourism\n& Services"))
+
+# Calcolo delle frequenze relative per ciascun gruppo di Course_grouped
+freq_course <- data %>%
+  group_by(Course_grouped, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(Course_grouped) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+# Definizione della palette di colori
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# Creazione del grouped barplot
+p <- ggplot(freq_course, aes(x = Course_grouped, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: Course/Target", 
+       x = "Course", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(size = 10)) # Mantiene leggibili le etichette spezzate
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_Course_Target.pdf", plot = p, width = 14, height = 7)
+
+# Mostrare il conteggio delle categorie accorpate
+print(freq_course)
+
+```
+

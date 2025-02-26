@@ -134,3 +134,267 @@ ggplot(data, aes(x = Target, y = Age_at_enrollment, fill = Target)) +
 # dev.off()
 
 ```
+
+```{r}
+#GENDER
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Sostituzione dei valori numerici con le etichette corrispondenti
+data$Gender <- factor(data$Gender, 
+                      levels = c(0, 1), 
+                      labels = c("Female", "Male"))
+
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Calcolo delle frequenze relative per ciascun gruppo Gender
+freq_gender <- data %>%
+  group_by(Gender, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(Gender) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+# Definizione della palette di colori 
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# Creazione del grouped barplot
+p <- ggplot(freq_gender, aes(x = Gender, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: Gender/Target", 
+       x = "Gender", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_Gender_Target.pdf", plot = p, width = 10, height = 6)
+
+
+
+```
+
+```{r}
+# AGE AT ENROLLMENT
+# Caricamento Dataset
+library(here)
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+
+# Conversione della variabile numerica in un formato adatto per il boxplot
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Creazione del boxplot
+box_plot <- ggplot(data, aes(x = Target, y = Age_at_enrollment, fill = Target)) +
+  geom_boxplot(outlier.shape = 16, outlier.size = 2, notch = FALSE, width = 0.5, color = "black") +
+  stat_boxplot(geom = "errorbar", width = 0.15, color = "black") +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Boxplot", 
+       x = "Target", 
+       y = "Age at Enrollment", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Correzione della frequenza relativa dell'istogramma
+hist_plot <- ggplot(data, aes(x = Age_at_enrollment, fill = Target)) +
+  geom_histogram(aes(y = (..count..) / tapply(..count.., ..PANEL.., sum)[..PANEL..] * 100),
+                 binwidth = 1, color = "black", position = "identity", alpha = 0.6) +
+  facet_grid(Target ~ .) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Histograms", x = "Age at Enrollment", y = "Relative Frequency (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2))
+
+# Combinazione dei grafici in un'unica figura con due sezioni
+combined_plot <- (box_plot / hist_plot) +
+  plot_annotation(title = "Age at Enrollment / Target") &
+  theme(plot.title = element_text(hjust = 0.48, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Boxplot_Histograms_Age_at_Enrollment.pdf", plot = combined_plot, width = 16, height = 12)
+
+```
+
+
+```{r}
+# MARITAL STATUS vs TARGET
+
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Mappatura delle categorie originali di Marital Status
+data$Marital_status <- factor(data$Marital_status, 
+                              levels = c(1, 2, 3, 4, 5, 6), 
+                              labels = c("1-Single", "2-Married", "3-Widower", 
+                                         "4-Divorced", "5-Facto Union", "6-Legally Separated"))
+
+# Creazione della variabile accorpata con livelli numerati
+data$Marital_status_grouped <- recode(data$Marital_status,
+                                      "1-Single" = "1-Single",
+                                      "2-Married" = "2-Married",
+                                      "5-Facto Union" = "2-Married",
+                                      "3-Widower" = "3-Previously Married",
+                                      "4-Divorced" = "3-Previously Married",
+                                      "6-Legally Separated" = "3-Previously Married")
+
+# Convertire in fattore con ordine predefinito
+data$Marital_status_grouped <- factor(data$Marital_status_grouped, 
+                                      levels = c("1-Single", "2-Married", "3-Previously Married"))
+
+# Mappatura della variabile Target
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Calcolo delle frequenze relative per ciascun gruppo di Marital Status accorpato
+freq_marital <- data %>%
+  group_by(Marital_status_grouped, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(Marital_status_grouped) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+# Definizione della palette di colori 
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# Creazione del grouped barplot
+p <- ggplot(freq_marital, aes(x = Marital_status_grouped, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: Marital Status/Target", 
+       x = "Marital Status", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_MaritalStatus_Target.pdf", plot = p, width = 10, height = 6)
+
+```
+
+```{r}
+# NATIONALITY vs TARGET
+
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Creazione della variabile accorpata con due categorie: Portuguese vs Other Nationality
+data$Nationality_grouped <- recode(data$Nationality,
+                                   "1" = "1-Portuguese", 
+                                   .default = "2-Other Nationality") # Tutte le altre nazionalità vengono accorpate
+
+# Convertire in fattore con ordine predefinito
+data$Nationality_grouped <- factor(data$Nationality_grouped, 
+                                   levels = c("1-Portuguese", "2-Other Nationality"))
+
+# Mappatura della variabile Target
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Calcolo delle frequenze relative per ciascun gruppo di Nationality accorpato
+freq_nationality <- data %>%
+  group_by(Nationality_grouped, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(Nationality_grouped) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+# Definizione della palette di colori 
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# Creazione del grouped barplot
+p <- ggplot(freq_nationality, aes(x = Nationality_grouped, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: Nationality/Target", 
+       x = "Nationality", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_Nationality_Target.pdf", plot = p, width = 10, height = 6)
+
+```
+
+```{r}
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+
+# Caricamento Dataset Aggregato
+data_aggregated <- read.csv(here("dataset/data_aggregated.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Mappatura dei valori numerici in etichette testuali per una leggibilità migliore
+data_aggregated$Marital_status <- factor(data_aggregated$Marital_status, 
+                                         levels = c(1, 2, 3), 
+                                         labels = c("Single", "Married", "Previously Married"))
+
+# Definizione della palette di colori personalizzata
+color_palette <- c("Single" = "#1f77b4",    # Blu
+                   "Married" = "#ff7f0e",   # Arancione
+                   "Previously Married" = "#2ca02c")  # Verde
+
+# Creazione del boxplot con error bars
+box_plot <- ggplot(data_aggregated, aes(x = Marital_status, y = Age_at_enrollment, fill = Marital_status)) +
+  geom_boxplot(outlier.shape = 16, outlier.size = 2, notch = FALSE, width = 0.5, color = "black") +  # Boxplot con outlier
+  stat_boxplot(geom = "errorbar", width = 0.15, color = "black") +  # Error bars
+  scale_fill_manual(values = color_palette) +  
+  labs(subtitle = "Boxplot: Marital Status / Age At Enrollment", 
+       x = "Marital Status", 
+       y = "Age at Enrollment", 
+       fill = "Marital Status") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Visualizza il grafico
+print(box_plot)
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Boxplot_MaritalStatus_AgeAtEnrollment.pdf", plot = box_plot, width = 10, height = 6)
+
+
+
+```
+

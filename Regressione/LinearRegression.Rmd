@@ -1,0 +1,71 @@
+
+```{r}
+# Caricare i pacchetti necessari
+if(!require(ggplot2)) install.packages("ggplot2", dependencies = TRUE)
+if(!require(here)) install.packages("here", dependencies = TRUE)
+if(!require(dplyr)) install.packages("dplyr", dependencies = TRUE)
+
+library(ggplot2)
+library(here)
+library(dplyr)
+
+# Lettura del dataset
+df <- read.csv(here("dataset/data_aggregated.csv"), sep = ",", header = TRUE, check.names = TRUE)
+
+# Rimuovere le righe con voto 0 in uno dei due semestri
+df_filtered <- subset(df, Curricular_units_1st_sem_.grade. > 0 & Curricular_units_2nd_sem_.grade. > 0)
+
+# Selezionare le variabili di interesse
+X <- df_filtered$Curricular_units_1st_sem_.grade.
+y <- df_filtered$Curricular_units_2nd_sem_.grade.
+
+# Creare un data frame con i dati
+data <- data.frame(X, y)
+
+# Funzione per rimuovere gli outlier usando il metodo IQR
+remove_outliers <- function(df, column) {
+  Q1 <- quantile(df[[column]], 0.25)
+  Q3 <- quantile(df[[column]], 0.75)
+  IQR_value <- Q3 - Q1
+  
+  lower_bound <- Q1 - 1.5 * IQR_value
+  upper_bound <- Q3 + 1.5 * IQR_value
+  
+  df <- df[df[[column]] >= lower_bound & df[[column]] <= upper_bound, ]
+  return(df)
+}
+
+# Rimuovere gli outlier nelle variabili X e y
+data_clean <- remove_outliers(data, "X")
+data_clean <- remove_outliers(data_clean, "y")
+
+# Creare il modello di regressione lineare
+lm_model <- lm(y ~ X, data = data_clean)
+
+# Stampare il riepilogo del modello
+summary(lm_model)
+
+# Predizioni
+data_clean$y_pred <- predict(lm_model, newdata = data_clean)
+
+# Creare il grafico con il titolo centrato e senza equazione
+plot_lm <- ggplot(data_clean, aes(x = X, y = y)) +
+  geom_point(color = "blue", alpha = 0.5) +  # Punti reali
+  geom_line(aes(y = y_pred), color = "red", size = 1) +  # Linea di regressione
+  labs(title = "Linear Regression: CU Grade 1st Sem. / CU Grade 2nd Sem.",
+       x = "Grade 1st Sem.",
+       y = "Grade 2nd Sem.") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))  # Centrare il titolo
+
+# Salvare il grafico in PDF
+pdf("grafici/linear_regression.pdf", width = 8, height = 6)
+print(plot_lm)
+dev.off()
+
+# Stampare il grafico a schermo
+print(plot_lm)
+
+
+
+```

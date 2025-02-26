@@ -176,4 +176,134 @@ mae <- mean(abs(predizioni - y_var))
 print(paste("Il Mean Absolute Error (MAE) è:", round(mae, 2)))
 ```
 
+```{r}
+
+# Caricare i pacchetti necessari
+if(!require(kernlab)) install.packages("kernlab", dependencies = TRUE)
+if(!require(ggplot2)) install.packages("ggplot2", dependencies = TRUE)
+
+library(kernlab)
+library(ggplot2)
+library(here)
+library(dplyr)
+
+# Lettura del dataset
+df <- read.csv(here("dataset/data_aggregated.csv"), sep = ",", header = TRUE, check.names = TRUE)
+
+# Rimuovere le righe con voto 0 in uno dei due semestri
+df_filtered <- subset(df, Curricular_units_1st_sem_.grade. > 0 & Curricular_units_2nd_sem_.grade. > 0)
+
+# Selezionare le variabili di interesse
+X <- df_filtered$Curricular_units_1st_sem_.grade.
+y <- df_filtered$Curricular_units_2nd_sem_.grade.
+
+# Creare un data frame con i dati
+data <- data.frame(X, y)
+
+# Suddividere il dataset in training (80%) e test (20%)
+set.seed(42)
+train_idx <- sample(1:nrow(data), 0.8 * nrow(data))
+train_data <- data[train_idx, ]
+test_data <- data[-train_idx, ]
+
+# Creazione del modello Gaussian Process (usando il kernel RBF)
+gpr_model <- gausspr(y ~ X, data = train_data, kernel = "rbfdot")
+
+# Predire i valori su un intervallo continuo per ottenere una curva più fluida
+X_seq <- seq(min(test_data$X), max(test_data$X), length.out = 100)
+pred_data <- data.frame(X = X_seq)
+y_pred <- predict(gpr_model, pred_data)
+
+# Creare intervallo di confidenza simulato (GPR non restituisce direttamente l'incertezza)
+sigma <- sd(y_pred - mean(y_pred))  # Simula una deviazione standard basata sui residui
+y_pred_lower <- y_pred - 1.96 * sigma  # Intervallo di confidenza 95%
+y_pred_upper <- y_pred + 1.96 * sigma
+
+# Creare il grafico con l'intervallo di confidenza
+plot_gpr <- ggplot() +
+  geom_point(aes(x = test_data$X, y = test_data$y), color = "brown", alpha = 0.6) + # Punti reali
+  geom_line(aes(x = X_seq, y = y_pred), color = "blue", size = 1) +  # Linea predetta
+  geom_ribbon(aes(x = X_seq, ymin = y_pred_lower, ymax = y_pred_upper), fill = "blue", alpha = 0.2) + # Banda di confidenza
+  labs(title = "Regressione con Gaussian Process e Intervallo di Confidenza",
+       x = "Voto 1° semestre",
+       y = "Voto 2° semestre") +
+  theme_minimal()
+
+# Salvare il grafico in PDF
+pdf("gpr_confidence_plot.pdf", width = 8, height = 6)
+print(plot_gpr)
+dev.off()
+
+# Stampare il grafico a schermo
+print(plot_gpr)
+
+
+```
+
+```{r}
+# Caricare i pacchetti necessari
+if(!require(ggplot2)) install.packages("ggplot2", dependencies = TRUE)
+
+library(ggplot2)
+library(here)
+library(dplyr)
+
+# Lettura del dataset
+df <- read.csv(here("dataset/data_aggregated.csv"), sep = ",", header = TRUE, check.names = TRUE)
+
+# Rimuovere le righe con voto 0 in uno dei due semestri
+df_filtered <- subset(df, Curricular_units_1st_sem_.grade. > 0 & Curricular_units_2nd_sem_.grade. > 0)
+
+# Selezionare le variabili di interesse
+X <- df_filtered$Curricular_units_1st_sem_.grade.
+y <- df_filtered$Curricular_units_2nd_sem_.grade.
+
+# Creare un data frame con i dati
+data <- data.frame(X, y)
+
+# Funzione per rimuovere gli outlier usando il metodo IQR
+remove_outliers <- function(df, column) {
+  Q1 <- quantile(df[[column]], 0.25)
+  Q3 <- quantile(df[[column]], 0.75)
+  IQR_value <- Q3 - Q1
+  
+  lower_bound <- Q1 - 1.5 * IQR_value
+  upper_bound <- Q3 + 1.5 * IQR_value
+  
+  df <- df[df[[column]] >= lower_bound & df[[column]] <= upper_bound, ]
+  return(df)
+}
+
+# Rimuovere gli outlier nelle variabili X e y
+data_clean <- remove_outliers(data, "X")
+data_clean <- remove_outliers(data_clean, "y")
+
+# Creare il modello di regressione lineare
+lm_model <- lm(y ~ X, data = data_clean)
+
+# Stampare il riepilogo del modello
+summary(lm_model)
+
+# Predizioni
+data_clean$y_pred <- predict(lm_model, newdata = data_clean)
+
+# Creare il grafico
+plot_lm <- ggplot(data_clean, aes(x = X, y = y)) +
+  geom_point(color = "blue", alpha = 0.5) +  # Punti reali
+  geom_line(aes(y = y_pred), color = "red", size = 1) +  # Linea di regressione
+  labs(title = "Linear Regression: CU Grade 1st Sem. / CU Grade 2nd Sem.",
+       x = "Grade 1st Sem.",
+       y = "Grade 2nd Sem.") +
+  theme_minimal()
+
+# Salvare il grafico in PDF
+pdf("linear_regression", width = 8, height = 6)
+print(plot_lm)
+dev.off()
+
+# Stampare il grafico a schermo
+print(plot_lm)
+
+
+```
 

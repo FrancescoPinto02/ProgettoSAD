@@ -247,7 +247,8 @@ numerical_features <- c("Admission_grade", "Previous_qualification_(grade)",
                         "Curricular_units_1st_sem_(evaluations)", "Curricular_units_1st_sem_(approved)",
                         "Curricular_units_1st_sem_(without_evaluations)", "Curricular_units_2nd_sem_(credited)",
                         "Curricular_units_2nd_sem_(enrolled)", "Curricular_units_2nd_sem_(evaluations)",
-                        "Curricular_units_2nd_sem_(approved)", "Curricular_units_2nd_sem_(without_evaluations)")
+                        "Curricular_units_2nd_sem_(approved)", "Curricular_units_2nd_sem_(without_evaluations)", 
+                        "Completed_exams_ratio", "Passed_exams_ratio")
 
 # 📌 Filtrare i dati prima di eseguire il test
 data_filtered <- data %>%

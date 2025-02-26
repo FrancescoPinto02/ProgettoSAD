@@ -1,98 +1,410 @@
 ```{r}
-library(ggplot2)
-library(dplyr)
-library(patchwork)
+# Caricamento Dataset
 library(here)
-
+library(dplyr)
 data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
 
+# Studenti con valori mancanti (RIMOSSI)
+print(data %>%
+  filter(`Curricular_units_1st_sem_(enrolled)` == 0 | `Curricular_units_2nd_sem_(enrolled)` == 0))
 
-# Funzione per creare Boxplot suddivisi per Target
-create_boxplot_by_target <- function(features, target, data, output_dir = "Grafici", colors = c("#FF6A6A", "#32CD32", "#6495ED")) {
-  if (!dir.exists(output_dir)) {
-    dir.create(output_dir)
-  }
-  
-  y_limits <- list(
-    "Curricular_units_1st_sem_(approved)" = c(0, 25),
-    "Curricular_units_1st_sem_(credited)" = c(0, 20),
-    "Curricular_units_1st_sem_(enrolled)" = c(0, 25),
-    "Curricular_units_1st_sem_(evaluations)" = c(0, 45),
-    "Curricular_units_1st_sem_(grade)" = c(0, 20),
-    "Curricular_units_1st_sem_(without_evaluations)" = c(0, 15)
+data <- data %>%
+  filter(`Curricular_units_1st_sem_(enrolled)` != 0 & `Curricular_units_2nd_sem_(enrolled)` != 0)
+
+# Studenti che hanno dati solo per la feature enrolled ma non hanno mai fatto esami (RIMOSSI)
+print(data %>%
+  filter(`Curricular_units_1st_sem_(evaluations)` == 0 & `Curricular_units_2nd_sem_(evaluations)` == 0))
+
+data <- data %>%
+  filter(`Curricular_units_1st_sem_(evaluations)` != 0 | `Curricular_units_2nd_sem_(evaluations)` != 0)
+
+print(data %>%
+  filter(`Curricular_units_1st_sem_(approved)` == 0 & `Curricular_units_2nd_sem_(approved)` == 0))
+```
+
+
+```{r}
+
+
+# CURRICULAR UNITS 1ST & 2ND SEM (CREDITED)
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+
+
+
+# Riorganizzazione dei dati in formato long
+data_long <- data %>% 
+  pivot_longer(cols = c(`Curricular_units_1st_sem_(credited)`, `Curricular_units_2nd_sem_(credited)`),
+               names_to = "Semester", values_to = "Credited_Units") %>%
+  mutate(Semester = recode(Semester, 
+                           "Curricular_units_1st_sem_(credited)" = "1st Semester", 
+                           "Curricular_units_2nd_sem_(credited)" = "2nd Semester"))
+
+# Creazione del boxplot con entrambi i semestri
+box_plot <- ggplot(data_long, aes(x = Target, y = Credited_Units, fill = Target)) +
+  geom_boxplot(outlier.shape = 16, outlier.size = 2, notch = FALSE, width = 0.5, color = "black") +
+  stat_boxplot(geom = "errorbar", width = 0.15, color = "black") +
+  facet_wrap(~Semester) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Boxplot", 
+       x = "Target", 
+       y = "Credited Units", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Correzione della frequenza relativa degli istogrammi
+hist_plot <- ggplot(data_long, aes(x = Credited_Units, fill = Target)) +
+  geom_histogram(aes(y = (..count..) / tapply(..count.., ..PANEL.., sum)[..PANEL..] * 100),
+                 binwidth = 1, color = "black", position = "identity", alpha = 0.6) +
+  facet_grid(Target ~ Semester) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Histograms", x = "Credited Units", y = "Relative Frequency (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2))
+
+# Combinazione dei grafici in un'unica figura con due sezioni
+combined_plot <- (box_plot / hist_plot) +
+  plot_annotation(title = "Curricular Units Credited / Target") &
+  theme(plot.title = element_text(hjust = 0.48, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Boxplot_Histograms_Curricular_Units_1st_2nd_Sem_Credited.pdf", plot = combined_plot, width = 16, height = 12)
+
+```
+
+```{r}
+# CURRICULAR UNITS 1ST & 2ND SEM (ENROLLED)
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+
+# Conversione della variabile numerica in un formato adatto per il boxplot
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Riorganizzazione dei dati in formato long
+data_long <- data %>% 
+  pivot_longer(cols = c(`Curricular_units_1st_sem_(enrolled)`, `Curricular_units_2nd_sem_(enrolled)`),
+               names_to = "Semester", values_to = "Enrolled_Units") %>%
+  mutate(Semester = recode(Semester, 
+                           "Curricular_units_1st_sem_(enrolled)" = "1st Semester", 
+                           "Curricular_units_2nd_sem_(enrolled)" = "2nd Semester"))
+
+# Creazione del boxplot con entrambi i semestri
+box_plot <- ggplot(data_long, aes(x = Target, y = Enrolled_Units, fill = Target)) +
+  geom_boxplot(outlier.shape = 16, outlier.size = 2, notch = FALSE, width = 0.5, color = "black") +
+  stat_boxplot(geom = "errorbar", width = 0.15, color = "black") +
+  facet_wrap(~Semester) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Boxplot", 
+       x = "Target", 
+       y = "Enrolled Units", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Correzione della frequenza relativa degli istogrammi
+hist_plot <- ggplot(data_long, aes(x = Enrolled_Units, fill = Target)) +
+  geom_histogram(aes(y = (..count..) / tapply(..count.., ..PANEL.., sum)[..PANEL..] * 100),
+                 binwidth = 1, color = "black", position = "identity", alpha = 0.6) +
+  facet_grid(Target ~ Semester) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Histograms", x = "Enrolled Units", y = "Relative Frequency (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2))
+
+# Combinazione dei grafici in un'unica figura con due sezioni
+combined_plot <- (box_plot / hist_plot) +
+  plot_annotation(title = "Curricular Units Enrolled / Target") &
+  theme(plot.title = element_text(hjust = 0.48, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Boxplot_Histograms_Curricular_Units_1st_2nd_Sem_Enrolled.pdf", plot = combined_plot, width = 16, height = 12)
+
+```
+
+```{r}
+# CURRICULAR UNITS 1ST & 2ND SEM (EVALUATIONS)
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+
+# Conversione della variabile numerica in un formato adatto per il boxplot
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Riorganizzazione dei dati in formato long
+data_long <- data %>% 
+  pivot_longer(cols = c(`Curricular_units_1st_sem_(evaluations)`, `Curricular_units_2nd_sem_(evaluations)`),
+               names_to = "Semester", values_to = "Evaluations_Units") %>%
+  mutate(Semester = recode(Semester, 
+                           "Curricular_units_1st_sem_(evaluations)" = "1st Semester", 
+                           "Curricular_units_2nd_sem_(evaluations)" = "2nd Semester"))
+
+# Creazione del boxplot con entrambi i semestri
+box_plot <- ggplot(data_long, aes(x = Target, y = Evaluations_Units, fill = Target)) +
+  geom_boxplot(outlier.shape = 16, outlier.size = 2, notch = FALSE, width = 0.5, color = "black") +
+  stat_boxplot(geom = "errorbar", width = 0.15, color = "black") +
+  facet_wrap(~Semester) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Boxplot", 
+       x = "Target", 
+       y = "Evaluations Units", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Correzione della frequenza relativa degli istogrammi
+hist_plot <- ggplot(data_long, aes(x = Evaluations_Units, fill = Target)) +
+  geom_histogram(aes(y = (..count..) / tapply(..count.., ..PANEL.., sum)[..PANEL..] * 100),
+                 binwidth = 1, color = "black", position = "identity", alpha = 0.6) +
+  facet_grid(Target ~ Semester) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Histograms", x = "Evaluations", y = "Relative Frequency (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2))
+
+# Combinazione dei grafici in un'unica figura con due sezioni
+combined_plot <- (box_plot / hist_plot) +
+  plot_annotation(title = "Curricular Units Evaluations / Target") &
+  theme(plot.title = element_text(hjust = 0.48, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Boxplot_Histograms_Curricular_Units_1st_2nd_Sem_Evaluations.pdf", plot = combined_plot, width = 16, height = 12)
+
+```
+
+```{r}
+
+# CURRICULAR UNITS 1ST & 2ND SEM (APPROVED)
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+
+# Conversione della variabile numerica in un formato adatto per il boxplot
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Riorganizzazione dei dati in formato long
+data_long <- data %>% 
+  pivot_longer(cols = c(`Curricular_units_1st_sem_(approved)`, `Curricular_units_2nd_sem_(approved)`),
+               names_to = "Semester", values_to = "Approved_Units") %>%
+  mutate(Semester = recode(Semester, 
+                           "Curricular_units_1st_sem_(approved)" = "1st Semester", 
+                           "Curricular_units_2nd_sem_(approved)" = "2nd Semester"))
+
+# Creazione del boxplot con entrambi i semestri
+box_plot <- ggplot(data_long, aes(x = Target, y = Approved_Units, fill = Target)) +
+  geom_boxplot(outlier.shape = 16, outlier.size = 2, notch = FALSE, width = 0.5, color = "black") +
+  stat_boxplot(geom = "errorbar", width = 0.15, color = "black") +
+  facet_wrap(~Semester) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Boxplot", 
+       x = "Target", 
+       y = "Approved Units", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Correzione della frequenza relativa degli istogrammi
+hist_plot <- ggplot(data_long, aes(x = Approved_Units, fill = Target)) +
+  geom_histogram(aes(y = (..count..) / tapply(..count.., ..PANEL.., sum)[..PANEL..] * 100),
+                 binwidth = 1, color = "black", position = "identity", alpha = 0.6) +
+  facet_grid(Target ~ Semester) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Histograms", x = "Approved Units", y = "Relative Frequency (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2))
+
+# Combinazione dei grafici in un'unica figura con due sezioni
+combined_plot <- (box_plot / hist_plot) +
+  plot_annotation(title = "Curricular Units Approved / Target") &
+  theme(plot.title = element_text(hjust = 0.48, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Boxplot_Histograms_Curricular_Units_1st_2nd_Sem_Approved.pdf", plot = combined_plot, width = 16, height = 12)
+```
+
+```{r}
+# CURRICULAR UNITS 1ST & 2ND SEM (WITHOUT EVALUATIONS)
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+
+# Conversione della variabile numerica in un formato adatto per il boxplot
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Riorganizzazione dei dati in formato long
+data_long <- data %>% 
+  pivot_longer(cols = c(`Curricular_units_1st_sem_(without_evaluations)`, `Curricular_units_2nd_sem_(without_evaluations)`),
+               names_to = "Semester", values_to = "Without_Evaluations_Units") %>%
+  mutate(Semester = recode(Semester, 
+                           "Curricular_units_1st_sem_(without_evaluations)" = "1st Semester", 
+                           "Curricular_units_2nd_sem_(without_evaluations)" = "2nd Semester"))
+
+# Creazione del boxplot con entrambi i semestri
+box_plot <- ggplot(data_long, aes(x = Target, y = Without_Evaluations_Units, fill = Target)) +
+  geom_boxplot(outlier.shape = 16, outlier.size = 2, notch = FALSE, width = 0.5, color = "black") +
+  stat_boxplot(geom = "errorbar", width = 0.15, color = "black") +
+  facet_wrap(~Semester) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Boxplot", 
+       x = "Target", 
+       y = "Without Evaluations Units", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Correzione della frequenza relativa degli istogrammi
+hist_plot <- ggplot(data_long, aes(x = Without_Evaluations_Units, fill = Target)) +
+  geom_histogram(aes(y = (..count..) / tapply(..count.., ..PANEL.., sum)[..PANEL..] * 100),
+                 binwidth = 1, color = "black", position = "identity", alpha = 0.6) +
+  facet_grid(Target ~ Semester) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Histograms", x = "Without Evaluations Units", y = "Relative Frequency (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2))
+
+# Combinazione dei grafici in un'unica figura con due sezioni
+combined_plot <- (box_plot / hist_plot) +
+  plot_annotation(title = "Curricular Units Without Evaluations / Target") &
+  theme(plot.title = element_text(hjust = 0.48, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Boxplot_Histograms_Curricular_Units_1st_2nd_Sem_Without_Evaluations.pdf", plot = combined_plot, width = 16, height = 12)
+
+```
+
+```{r}
+
+# CURRICULAR UNITS 1ST & 2ND SEM (GRADE)
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+
+# Conversione della variabile Target in un fattore
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Riorganizzazione dei dati in formato long
+data_long <- data %>% 
+  pivot_longer(
+    cols = c(`Curricular_units_1st_sem_(grade)`, `Curricular_units_2nd_sem_(grade)`),
+    names_to = "Semester", 
+    values_to = "Grade"
+  ) %>%
+  mutate(Semester = recode(Semester, 
+                           "Curricular_units_1st_sem_(grade)" = "1st Semester", 
+                           "Curricular_units_2nd_sem_(grade)" = "2nd Semester"))
+
+# Creazione del boxplot per entrambi i semestri
+box_plot <- ggplot(data_long, aes(x = Target, y = Grade, fill = Target)) +
+  geom_boxplot(outlier.shape = 16, outlier.size = 2, width = 0.5, color = "black") +
+  stat_boxplot(geom = "errorbar", width = 0.15, color = "black") +
+  facet_wrap(~Semester, scales = "free_y") +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Boxplot", 
+       x = "Target", 
+       y = "Grade", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+    plot.margin = margin(10, 10, 10, 10)
   )
-  
-  for (feature in features) {
-    # Ottieni il nome corrispondente per il 2° semestre
-    feature_2nd <- gsub("1st", "2nd", feature)
-    
-    if (!feature %in% colnames(data) || !feature_2nd %in% colnames(data)) {
-      cat("Le feature", feature, "o", feature_2nd, "non sono presenti nel dataset. Boxplot non creati.\n")
-      next
-    }
-    
-    cleaned_feature_name <- gsub("_1st_sem_", " ", feature)
-    cleaned_feature_name <- gsub("_", " ", cleaned_feature_name)
-    
-    y_label <- ifelse(grepl("grade", feature, ignore.case = TRUE), "Grade", "Curricular Units")
-    
-    y_limit <- y_limits[[feature]]
-    
-    p1 <- ggplot(data, aes(x = .data[[target]], y = .data[[feature]], fill = .data[[target]])) +
-      geom_boxplot(notch = FALSE, outlier.color = "darkblue", outlier.shape = 1, width = 0.6) +
-      stat_boxplot(geom = "errorbar", width = 0.2, color = "black") +
-      scale_fill_manual(values = colors) +
-      ylim(y_limit) +  # Imposta i limiti dell'asse y
-      labs(title = "1° Semestre",
-           x = target,
-           y = y_label) +
-      theme_minimal() +
-      theme(plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2),
-            legend.position = "none")
-    
-    p2 <- ggplot(data, aes(x = .data[[target]], y = .data[[feature_2nd]], fill = .data[[target]])) +
-      geom_boxplot(notch = FALSE, outlier.color = "darkblue", outlier.shape = 1, width = 0.6) +
-      stat_boxplot(geom = "errorbar", width = 0.2, color = "black") +
-      scale_fill_manual(values = colors) +
-      ylim(y_limit) +  # Imposta i limiti dell'asse y
-      labs(title = "2° Semestre",
-           x = target,
-           y = y_label) +
-      theme_minimal() +
-      theme(plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2),
-            legend.position = "none")
-    
-    # Combina i grafici 
-    combined_plot <- p1 + p2 + plot_layout(ncol = 2) +
-      plot_annotation(
-        title = paste("Boxplot:", cleaned_feature_name, " / Target"),
-        theme = theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"))
-      )
-    
-    # Salvataggio in PDF
-    pdf_filename <- paste0(output_dir, "/Boxplot_Target_", gsub(" ", "_", cleaned_feature_name), ".pdf")
-    # pdf(pdf_filename, width = 12, height = 6)
-    print(combined_plot)
-    # dev.off()
-    
-  }
-}
 
+# Creazione dei kernel density plot con asse y sincronizzato
+density_plot <- ggplot(data_long, aes(x = Grade, fill = Target, y = ..density..)) +
+  geom_density(alpha = 0.6, adjust = 1.2) +
+  facet_grid(Target ~ Semester, scales = "fixed") +  # asse y sincronizzato per tutti i grafici
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Kernel Density Plots", x = "Grade", y = "Density") +
+  theme_minimal() +
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)
+  )
 
+# Combinazione dei grafici in un'unica figura
+combined_plot <- (box_plot / density_plot) +
+  plot_annotation(title = "Curricular Units Grade / Target") &
+  theme(plot.title = element_text(hjust = 0.48, face = "bold", size = 14))
 
-features <- c(
-  "Curricular_units_1st_sem_(credited)",
-  "Curricular_units_1st_sem_(enrolled)",
-  "Curricular_units_1st_sem_(evaluations)",
-  "Curricular_units_1st_sem_(approved)",
-  "Curricular_units_1st_sem_(without_evaluations)",
-  "Curricular_units_1st_sem_(grade)"
-)
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Boxplot_Density_Curricular_Units_1st_2nd_Sem_Grade.pdf", 
+       plot = combined_plot, width = 16, height = 12)
 
-# Variabile target
-target <- "Target"
+```
 
-# Genera i boxplot
-create_boxplot_by_target(features, target, data)
+```{r}
+
+# CURRICULAR UNITS 1ST & 2ND SEM (GRADE)
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+
+# Conversione della variabile numerica in un formato adatto per il violin plot
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Riorganizzazione dei dati in formato long
+data_long <- data %>% 
+  pivot_longer(cols = c(`Curricular_units_1st_sem_(grade)`, `Curricular_units_2nd_sem_(grade)`),
+               names_to = "Semester", values_to = "Grade") %>%
+  mutate(Semester = recode(Semester, 
+                           "Curricular_units_1st_sem_(grade)" = "1st Semester", 
+                           "Curricular_units_2nd_sem_(grade)" = "2nd Semester"))
+
+# Creazione del violin plot con boxplot sovrapposto e outlier visibili
+violin_box_plot <- ggplot(data_long, aes(x = Target, y = Grade, fill = Target)) +
+  geom_violin(trim = FALSE, alpha = 0.6, color = "black") +
+  geom_boxplot(width = 0.15, color = "black", outlier.shape = 16, outlier.size = 2, alpha = 0.8) +
+  stat_boxplot(geom = "errorbar", width = 0.2, color = "black") +
+  facet_wrap(~Semester, scales = "free_y") +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Violin and Boxplot", 
+       x = "Target", 
+       y = "Grade", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  ylim(0, 20)
+
+# Combinazione dei grafici in un'unica figura
+combined_plot <- violin_box_plot +
+  plot_annotation(title = "Curricular Units Grade / Target") &
+  theme(plot.title = element_text(hjust = 0.48, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Violin_Boxplot_Curricular_Units_1st_2nd_Sem_Grade.pdf", plot = combined_plot, width = 16, height = 12)
+
 ```
 

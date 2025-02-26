@@ -1,0 +1,428 @@
+```{r}
+# Librerie necessarie
+library(dplyr)
+library(here)
+library(ggplot2)
+
+# Caricamento dataset
+data <- read.csv(here("dataset/data_aggregated.csv"), sep = ",", header = TRUE, check.names = FALSE)
+print(data)
+```
+
+GESTIONE VALORI MANCANTI
+```{r}
+# Studenti con tutti i valori pari a 0
+print(data %>%
+  filter(`Curricular_units_1st_sem_(enrolled)` == 0 | `Curricular_units_2nd_sem_(enrolled)` == 0))
+
+data <- data %>%
+  filter(`Curricular_units_1st_sem_(enrolled)` != 0 & `Curricular_units_2nd_sem_(enrolled)` != 0)
+
+# Studenti che hanno dati solo per la feature enrolled ma non hanno mai fatto esami
+print(data %>%
+  filter(`Curricular_units_1st_sem_(evaluations)` == 0 & `Curricular_units_2nd_sem_(evaluations)` == 0))
+
+data <- data %>%
+  filter(`Curricular_units_1st_sem_(evaluations)` != 0 | `Curricular_units_2nd_sem_(evaluations)` != 0)
+
+# Studenti Che hanno media 0 ad entrambi i semestri ma che hanno provato degli esami
+print(data %>%
+  filter(`Curricular_units_1st_sem_(grade)` == 0 & `Curricular_units_2nd_sem_(grade)` == 0))
+
+# Studenti Che hanno media 0 ad uno dei semestri ma che hanno provato degli esami
+print(data %>%
+  filter( (`Curricular_units_1st_sem_(grade)` == 0 & `Curricular_units_2nd_sem_(grade)` != 0) | (`Curricular_units_1st_sem_(grade)` != 0 & `Curricular_units_2nd_sem_(grade)` == 0)))
+```
+
+GESTIONE OUTLIER
+
+```{r}
+# Funzione Winsorizing
+winsorize <- function(x, lower_percentile = 0.05, upper_percentile = 0.95) {
+  # Calcola i percentili
+  lower_bound <- quantile(x, lower_percentile, na.rm = TRUE)
+  upper_bound <- quantile(x, upper_percentile, na.rm = TRUE)
+  
+  # Sostituisce i valori oltre i limiti con i valori limite
+  x_winsorized <- pmin(pmax(x, lower_bound), upper_bound)
+  
+  return(x_winsorized)
+}
+
+# Applica Winsorization alle colonne 
+data$CU_enrolled_1st_sem_winsorized <- winsorize(data$`Curricular_units_1st_sem_(enrolled)`)
+data$CU_enrolled_2nd_sem_winsorized <- winsorize(data$`Curricular_units_2nd_sem_(enrolled)`)
+
+data$CU_evaluations_1st_sem_winsorized <- winsorize(data$`Curricular_units_1st_sem_(evaluations)`)
+data$CU_evaluations_2nd_sem_winsorized <- winsorize(data$`Curricular_units_2nd_sem_(evaluations)`)
+
+data$CU_approved_1st_sem_winsorized <- winsorize(data$`Curricular_units_1st_sem_(approved)`)
+data$CU_approved_2nd_sem_winsorized <- winsorize(data$`Curricular_units_2nd_sem_(approved)`)
+
+
+
+
+# Controlli Integrità Dati
+print(data %>%
+  filter(`CU_enrolled_1st_sem_winsorized` < `CU_approved_1st_sem_winsorized`))
+print(data %>%
+  filter(`CU_enrolled_2nd_sem_winsorized` < `CU_approved_2nd_sem_winsorized`))
+print(data %>%
+  filter(`CU_evaluations_1st_sem_winsorized` < `CU_approved_1st_sem_winsorized`))
+print(data %>%
+  filter(`CU_evaluations_2nd_sem_winsorized` < `CU_approved_2nd_sem_winsorized`))
+
+
+
+# Gestione Outlier Grade
+data$CU_grade_1st_sem_clean <- data$`Curricular_units_1st_sem_(grade)`
+data$CU_grade_2nd_sem_clean <- data$`Curricular_units_2nd_sem_(grade)`
+
+data <- data %>%
+  mutate(
+    CU_grade_1st_sem_clean = ifelse(
+      `Curricular_units_1st_sem_(grade)` == 0 & `Curricular_units_2nd_sem_(grade)` == 0, 10,
+      ifelse(`Curricular_units_1st_sem_(grade)` == 0, (0.686 * `Curricular_units_2nd_sem_(grade)` + 3.986),
+             `Curricular_units_1st_sem_(grade)`)
+    ),
+    CU_grade_2nd_sem_clean = ifelse(
+      `Curricular_units_1st_sem_(grade)` == 0 & `Curricular_units_2nd_sem_(grade)` == 0, 10,
+      ifelse(`Curricular_units_2nd_sem_(grade)` == 0, (0.686 * `Curricular_units_1st_sem_(grade)` + 3.986),
+             `Curricular_units_2nd_sem_(grade)`)
+    )
+  )
+
+data <- data %>%
+  mutate(CU_grade_1st_sem_clean = ifelse(`CU_grade_1st_sem_clean` < 10, 10, `CU_grade_1st_sem_clean`))
+data <- data %>%
+  mutate(CU_grade_2nd_sem_clean = ifelse(`CU_grade_2nd_sem_clean` < 10, 10, `CU_grade_2nd_sem_clean`))
+data <- data %>%
+  mutate(CU_approved_1st_sem_winsorized = ifelse(`CU_approved_1st_sem_winsorized` > 9, 9, `CU_approved_1st_sem_winsorized`))
+
+#data$CU_grade_1st_sem_clean <- winsorize(data$CU_grade_1st_sem_clean)
+#data$CU_grade_2nd_sem_clean <- winsorize(data$CU_grade_2nd_sem_clean)
+
+```
+
+
+```{r}
+# CURRICULAR UNITS ENROLLED (WINSORIZED) ANALYSIS 
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+
+# Definizione dei limiti Y per i boxplot
+min_y_box <- 0
+max_y_box <- max(max(data$CU_enrolled_1st_sem_winsorized), max(data$CU_enrolled_2nd_sem_winsorized)) * 1.1
+
+###  BOXPLOT ###
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `CU_enrolled_1st_sem_winsorized`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Units Enrolled") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  scale_y_continuous(breaks = seq(floor(min_y_box), ceiling(max_y_box), by = 3)) +  
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(floor(min_y_box), ceiling(max_y_box)))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `CU_enrolled_2nd_sem_winsorized`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Units Enrolled") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  scale_y_continuous(breaks = seq(floor(min_y_box), ceiling(max_y_box), by = 3)) +  
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(floor(min_y_box), ceiling(max_y_box)))
+
+###  COMBINAZIONE DEI BOXPLOT ###
+combined_plot <- (box_1st | box_2nd) +
+  plot_annotation(title = "Curricular Units Enrolled (Clean)") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Boxplot_Curricular_Units_Enrolled_Winsorized.pdf", 
+       plot = combined_plot, width = 12, height = 6)
+
+
+print(combined_plot)
+
+
+```
+```{r}
+#  CURRICULAR UNITS EVALUATIONS (WINSORIZED) ANALYSIS 
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+
+# Definizione degli stessi limiti Y per i boxplot
+max_y_box <- max(max(data$CU_evaluations_1st_sem_winsorized), max(data$CU_evaluations_2nd_sem_winsorized)) * 1.1
+
+###  BOXPLOT ###
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `CU_evaluations_1st_sem_winsorized`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Evaluations") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `CU_evaluations_2nd_sem_winsorized`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Evaluations") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+###  COMBINAZIONE DEI BOXPLOT ###
+combined_plot <- (box_1st | box_2nd) +
+  plot_annotation(title = "Curricular Units Evaluations (Clean)") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Boxplot_Curricular_Units_Evaluations_Winsorized.pdf", 
+       plot = combined_plot, width = 12, height = 6)
+
+print(combined_plot)
+
+
+```
+
+```{r}
+#  CURRICULAR UNITS APPROVED (WINSORIZED) ANALYSIS 
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+
+# Definizione dei limiti Y per i boxplot
+min_y_box <- 0
+max_y_box <- max(max(data$CU_approved_1st_sem_winsorized), max(data$CU_approved_2nd_sem_winsorized)) * 1.1
+
+###  BOXPLOT ###
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `CU_approved_1st_sem_winsorized`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Units Approved") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  scale_y_continuous(breaks = seq(floor(min_y_box), ceiling(max_y_box), by = 3)) + 
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(floor(min_y_box), ceiling(max_y_box)))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `CU_approved_2nd_sem_winsorized`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Units Approved") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  scale_y_continuous(breaks = seq(floor(min_y_box), ceiling(max_y_box), by = 3)) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(floor(min_y_box), ceiling(max_y_box)))
+
+###  COMBINAZIONE DEI BOXPLOT ###
+combined_plot <- (box_1st | box_2nd) +
+  plot_annotation(title = "Curricular Units Approved (Clean)") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Boxplot_Curricular_Units_Approved_Winsorized.pdf", 
+       plot = combined_plot, width = 12, height = 6)
+
+
+print(combined_plot)
+
+
+
+```
+
+```{r}
+# CURRICULAR UNITS GRADE (CLEAN) ANALYSIS
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+
+# Definizione dei limiti Y per i boxplot
+min_y_box <- 0
+max_y_box <- 20
+
+###  BOXPLOT ###
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `CU_grade_1st_sem_clean`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Grade") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  scale_y_continuous(breaks = seq(floor(min_y_box), ceiling(max_y_box), by = 2)) + 
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(floor(min_y_box), ceiling(max_y_box)))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `CU_grade_2nd_sem_clean`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Grade") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  scale_y_continuous(breaks = seq(floor(min_y_box), ceiling(max_y_box), by = 2)) + 
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(floor(min_y_box), ceiling(max_y_box)))
+
+### COMBINAZIONE DEI BOXPLOT ###
+combined_plot <- (box_1st | box_2nd) +
+  plot_annotation(title = "Curricular Units Grades (Clean)") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Boxplot_Curricular_Units_Grades_Clean.pdf", 
+       plot = combined_plot, width = 12, height = 6)
+
+print(combined_plot)
+
+```
+
+```{r}
+# COMPLETED EXAMS RATIO ANALYSIS
+library(ggplot2)
+library(dplyr)
+
+
+# Creazione del boxplot
+boxplot_completed_exams <- ggplot(data, aes(x = "", y = `Completed_exams_ratio`)) +
+  geom_boxplot(fill = "#66c2a5", color = "darkgreen", width = 0.3) +
+  labs(title = "Boxplot: Completed Exams Ratio", y = "% Completed Exams") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Boxplot_Completed_Exams_Ratio.pdf", 
+       plot = boxplot_completed_exams, width = 8, height = 6)
+
+print(boxplot_completed_exams)
+
+
+```
+```{r}
+# PASSED EXAMS RATIO ANALYSIS
+
+# Librerie necessarie
+library(ggplot2)
+library(dplyr)
+
+
+# Creazione del boxplot
+boxplot_passed_exams <- ggplot(data, aes(x = "", y = `Passed_exams_ratio`)) +
+  geom_boxplot(fill = "#fc8d62", color = "darkred", width = 0.3) +
+  labs(title = "Boxplot: Passed Exams Ratio", y = "% Passed Exams") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Boxplot_Passed_Exams_Ratio.pdf", 
+       plot = boxplot_passed_exams, width = 8, height = 6)
+
+print(boxplot_passed_exams)
+
+```
+```{r}
+# 📌 PCA ANALYSIS 📌
+
+# Librerie necessarie
+library(ggplot2)
+library(FactoMineR)
+library(factoextra)
+library(dplyr)
+
+pca_vars <- c("Completed_exams_ratio", "Passed_exams_ratio", 
+             "CU_enrolled_1st_sem_winsorized", "CU_enrolled_2nd_sem_winsorized",
+             "CU_evaluations_1st_sem_winsorized", "CU_evaluations_2nd_sem_winsorized",
+             "CU_approved_1st_sem_winsorized", "CU_approved_2nd_sem_winsorized",
+             "CU_grade_1st_sem_clean", "CU_grade_2nd_sem_clean")
+
+#pca_vars <- c("Completed_exams_ratio", "Passed_exams_ratio", 
+    #          "Curricular_units_1st_sem_(approved)", "Curricular_units_2nd_sem_(approved)",
+       #       "Curricular_units_1st_sem_(enrolled)", "Curricular_units_2nd_sem_(enrolled)",
+      #        "Curricular_units_1st_sem_(evaluations)", "Curricular_units_2nd_sem_(evaluations)",
+       #       "Curricular_units_1st_sem_(grade)", "Curricular_units_2nd_sem_(grade)")
+
+# Creare un dataset solo con le variabili di interesse
+pca_data <- data %>%
+  select(all_of(pca_vars)) %>%
+  na.omit()
+
+# Standardizzare i dati 
+pca_data_scaled <- scale(pca_data)
+
+# Eseguire la PCA
+pca_result <- PCA(pca_data_scaled, graph = FALSE)
+
+# Estrarre le prime 3 componenti principali
+pca_components <- as.data.frame(pca_result$ind$coord[, 1:3])
+colnames(pca_components) <- c("PC1", "PC2", "PC3")
+
+# Aggiungere le componenti principali al dataset originale
+data_pca <- cbind(data[rownames(pca_components), ], pca_components)
+
+# 📌 Scree Plot: Varianza spiegata da ogni componente principale
+scree_plot <- fviz_eig(pca_result, addlabels = TRUE, ylim = c(0, 100)) +
+  ggtitle("Scree Plot: Explained Variance by Principal Components") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+
+# Mostrare il grafico a schermo
+print(scree_plot)
+
+# Salvare il grafico in PDF (assicurati che la cartella "Grafici" esista)
+ggsave("Grafici/ScreePlot_PCA.pdf", plot = scree_plot, width = 8, height = 6)
+
+# Stampare le prime righe del dataset con le nuove componenti
+head(data_pca)
+
+
+```
+
+
+```{r}
+print(data_pca)
+write.csv(data_pca, here("dataset/dataClean.csv"), row.names = FALSE)
+```
+
