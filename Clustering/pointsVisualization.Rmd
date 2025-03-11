@@ -1,0 +1,21 @@
+```{r}
+# Librerie necessarie
+library(dplyr)
+library(here)
+library(ggplot2)
+
+# Caricamento dataset
+df <- read.csv(here("dataset/dataClean.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Scatterplot con PC1 e PC2
+ggplot(df, aes(x = PC1, y = PC2, color = as.factor(Target))) +
+  geom_point(alpha = 0.7, size = 3) +
+  labs(title = "Scatterplot di PC1 vs PC2",
+       x = "PC1",
+       y = "PC2",
+       color = "Target") +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1")
+
+```
+

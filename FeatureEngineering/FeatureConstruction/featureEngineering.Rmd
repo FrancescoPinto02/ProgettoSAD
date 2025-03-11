@@ -1,0 +1,223 @@
+```{r}
+# Librerie
+library(here)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/data_aggregated.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Creazione Feature: % esami superati rispetto a quelli previsti (enrolled)
+total_enrolled <- data$`Curricular_units_1st_sem_(enrolled)` + data$`Curricular_units_2nd_sem_(enrolled)`
+total_approved <- data$`Curricular_units_1st_sem_(approved)` + data$`Curricular_units_2nd_sem_(approved)`
+
+data$Completed_exams_ratio <- ifelse(total_enrolled > 0, 
+                                     (total_approved / total_enrolled) * 100, 
+                                     0)
+
+# Creazione Feature: % esami superati rispetto a quelli tentati (evaluations)
+total_evaluations <- data$`Curricular_units_1st_sem_(evaluations)` + data$`Curricular_units_2nd_sem_(evaluations)`
+
+data$Passed_exams_ratio <- ifelse(total_evaluations > 0, 
+                                  (total_approved / total_evaluations) * 100, 
+                                  0)
+
+head(data)
+
+# ---- Salvataggio del dataset ----
+write.csv(data, here("dataset/data_aggregated.csv"), row.names = FALSE)
+```
+
+ANALISI UNIVARIATA NUOVE FEATURES
+```{r}
+
+# Librerie
+library(here)
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/data_aggregated.csv"), sep = ",", header = TRUE, check.names = FALSE)
+head(data)
+
+##### COMPLETED EXAMS RATIO
+
+# Rimozione di eventuali valori mancanti
+completed_exams_data <- na.omit(data$Completed_exams_ratio)
+
+# Istogramma con densità
+hist_density_plot <- ggplot(data, aes(x = Completed_exams_ratio)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = diff(range(completed_exams_data)) / 10,  
+                 color = "black", fill = "#1f77b4", alpha = 0.6) +  # Blu
+  geom_density(color = "#d62728", size = 1) +  # Rosso
+  labs(subtitle = "Histogram & Density Function",
+       x = "% Completed Exams",
+       y = "Density") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) 
+
+# Boxplot
+box_plot <- ggplot(data, aes(x = "", y = Completed_exams_ratio)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +  # Azzurro
+  labs(subtitle = "Boxplot", y = "% Completed Exams") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Combinazione dei grafici
+combined_plot <- (hist_density_plot | box_plot) + 
+  plot_annotation(title = "Completed Exams Ratio") & 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Completed_Exams_Ratio_Histogram_Boxplot.pdf", plot = combined_plot, width = 16, height = 6)
+
+# Calcolo degli indici di sintesi
+media <- mean(completed_exams_data)  
+mediana <- median(completed_exams_data)  
+dev_standard <- sd(completed_exams_data)  
+varianza <- var(completed_exams_data)  
+skewness_value <- skewness(completed_exams_data)  
+kurtosis_value <- kurtosis(completed_exams_data)  
+range_value <- max(completed_exams_data) - min(completed_exams_data)  
+quartili <- quantile(completed_exams_data, probs = c(0.25, 0.50, 0.75))
+iqr_value <- IQR(completed_exams_data)  
+cv <- (dev_standard / media) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi di Completed Exams Ratio:\n")
+cat("Media:", round(media, 2), "\n")
+cat("Mediana:", round(mediana, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard, 2), "\n")
+cat("Varianza:", round(varianza, 2), "\n")
+cat("Skewness:", round(skewness_value, 2), "\n")
+cat("Curtosi:", round(kurtosis_value, 2), "\n")
+cat("Range:", range_value, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_value, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv, 2), "%\n")
+
+###### PASSED EXAMS RATIO ######
+
+# Rimozione di eventuali valori mancanti
+passed_exams_data <- na.omit(data$Passed_exams_ratio)
+
+# Istogramma con densità
+hist_density_plot_passed <- ggplot(data, aes(x = Passed_exams_ratio)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = diff(range(passed_exams_data)) / 10,  
+                 color = "black", fill = "#ff7f0e", alpha = 0.6) +  # Arancione
+  geom_density(color = "#2ca02c", size = 1) +  # Verde
+  labs(subtitle = "Histogram & Density Function",
+       x = "% Passed Exams",
+       y = "Density") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) 
+
+# Boxplot
+box_plot_passed <- ggplot(data, aes(x = "", y = Passed_exams_ratio)) +
+  geom_boxplot(fill = "#98df8a", color = "darkgreen", width = 0.3) +  # Verde chiaro
+  labs(subtitle = "Boxplot", y = "% Passed Exams") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Combinazione dei grafici
+combined_plot_passed <- (hist_density_plot_passed | box_plot_passed) + 
+  plot_annotation(title = "Passed Exams Ratio") & 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Passed_Exams_Ratio_Histogram_Boxplot.pdf", plot = combined_plot_passed, width = 16, height = 6)
+
+```
+
+ANALISI BIVARIATA NUOVE FEATURES
+```{r}
+# Librerie
+library(here)
+library(ggplot2)
+library(patchwork)
+library(moments)
+library(dplyr)
+library(tidyr)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/data_aggregated.csv"), sep = ",", header = TRUE, check.names = FALSE)
+head(data)
+
+######## COMPLETED EXAMS RATIO ########
+
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Riorganizzazione dei dati in formato long
+data_long_completed <- data %>% 
+  pivot_longer(cols = c(Completed_exams_ratio),
+               names_to = "Metric", 
+               values_to = "Value")
+
+# Creazione del boxplot e density plot per Completed_exams_ratio
+box_plot_completed <- ggplot(data_long_completed, aes(x = Target, y = Value, fill = Target)) +
+  geom_boxplot(outlier.shape = 16, outlier.size = 2, width = 0.5, color = "black") +
+  stat_boxplot(geom = "errorbar", width = 0.15, color = "black") +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Boxplot", x = "Target", y = "% Completed Exams", fill = "Target") +
+  theme_minimal()
+
+density_plot_completed <- ggplot(data_long_completed, aes(x = Value, fill = Target, y = ..density..)) +
+  geom_density(alpha = 0.6, adjust = 1.2) +
+  facet_grid(Target ~ ., scales = "fixed") +  
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Kernel Density Plots", x = "% Completed Exams", y = "Density") +
+  theme_minimal()
+
+combined_plot_completed <- (box_plot_completed / density_plot_completed) +
+  plot_annotation(title = "Completed Exams Ratio / Target") &
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+ggsave("Grafici/Combined_Boxplot_Density_Completed_Exams_Ratio.pdf", 
+       plot = combined_plot_completed, width = 16, height = 12)
+
+
+###### PASSED EXAMS RATIO ########
+
+data_long_passed <- data %>% 
+  pivot_longer(cols = c(Passed_exams_ratio),
+               names_to = "Metric", 
+               values_to = "Value")
+
+# Creazione del boxplot e density plot per Passed_exams_ratio
+box_plot_passed <- ggplot(data_long_passed, aes(x = Target, y = Value, fill = Target)) +
+  geom_boxplot(outlier.shape = 16, outlier.size = 2, width = 0.5, color = "black") +
+  stat_boxplot(geom = "errorbar", width = 0.15, color = "black") +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Boxplot", x = "Target", y = "% Passed Exams", fill = "Target") +
+  theme_minimal()
+
+density_plot_passed <- ggplot(data_long_passed, aes(x = Value, fill = Target, y = ..density..)) +
+  geom_density(alpha = 0.6, adjust = 1.2) +
+  facet_grid(Target ~ ., scales = "fixed") +  
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Kernel Density Plots", x = "% Passed Exams", y = "Density") +
+  theme_minimal()
+
+combined_plot_passed <- (box_plot_passed / density_plot_passed) +
+  plot_annotation(title = "Passed Exams Ratio / Target") &
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+ggsave("Grafici/Combined_Boxplot_Density_Passed_Exams_Ratio.pdf", 
+       plot = combined_plot_passed, width = 16, height = 12)
+
+```
+

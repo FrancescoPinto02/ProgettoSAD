@@ -1,0 +1,471 @@
+```{r}
+# Librerie necessarie
+library(dplyr)
+library(here)
+library(ggplot2)
+
+# Caricamento dataset
+data <- read.csv(here("dataset/dataClean.csv"), sep = ",", header = TRUE, check.names = FALSE)
+print(data)
+```
+
+CLUSTERING K=4
+
+```{r}
+library(ggplot2)
+library(cluster)
+library(factoextra)
+library(dplyr)
+library(rgl)
+library(fpc)
+
+# Selezione prime 3 PC
+pca_cluster_data <- data %>%
+  select(PC1, PC2, PC3)
+
+# Elbow Method
+elbow_plot <- fviz_nbclust(pca_cluster_data, kmeans, method = "wss") +
+  ggtitle("Elbow Method") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave("grafici/elbow_plot.pdf", plot = elbow_plot, width = 8, height = 6)
+
+
+
+# Silhouette Method
+silhouette_plot <- fviz_nbclust(pca_cluster_data, kmeans, method = "silhouette") +
+  ggtitle("Silhouette Score") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+ggsave("grafici/silhouette_plot.pdf", plot = silhouette_plot, width = 8, height = 6)
+
+
+
+
+# Screeplot Calinski-Harabasz
+calinski_harabasz_values <- numeric()
+k_values <- 2:10
+
+for (k in k_values) {
+  set.seed(123)
+  kmeans_model <- kmeans(pca_cluster_data, centers = k, nstart = 25)
+  calinski_harabasz_values[k - 1] <- cluster.stats(dist(pca_cluster_data), kmeans_model$cluster)$ch
+}
+
+df_calinski <- data.frame(K = k_values, CH_Index = calinski_harabasz_values)
+
+calinski_plot <- ggplot(df_calinski, aes(x = K, y = CH_Index)) +
+  geom_point(size = 3, color = "blue") +
+  geom_line(color = "blue", linetype = "dashed") +
+  labs(title = "Screeplot: Indice di Calinski-Harabasz",
+       x = "Numero di Cluster (K)",
+       y = "Calinski-Harabasz Index") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+ggsave("grafici/calinski_harabasz_plot.pdf", plot = calinski_plot, width = 8, height = 6)
+
+
+
+
+
+# Numero di Cluster Ottimale
+optimal_k <- 4
+
+# Esecuzione K-Means
+set.seed(123)
+kmeans_result <- kmeans(pca_cluster_data, centers = optimal_k, nstart = 25)
+
+# Aggiunta dei Cluster al dataset
+data_pca <- pca_cluster_data  
+data_pca$Cluster <- as.factor(kmeans_result$cluster)
+
+data$Cluster <- NA
+data$Cluster <- as.factor(kmeans_result$cluster)
+
+print(table(data_pca$Cluster))
+
+# Distribuzione Variabile Target nei Cluster
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+if ("Target" %in% colnames(data)) {
+  data_pca$Target <- data$Target
+  
+  table_cluster_target <- prop.table(table(data_pca$Cluster, data_pca$Target), margin = 1)
+  data_plot <- as.data.frame(table_cluster_target) %>%
+    rename(Cluster = Var1, Target = Var2, Freq = Freq)
+  
+  data_plot$Freq <- data_plot$Freq * 100
+
+  print("Distribuzione relativa della variabile Target nei Cluster:")
+  print(round(table_cluster_target, 3))
+  
+  cluster_target_plot <- ggplot(data_plot, aes(x = Cluster, y = Freq, fill = Target)) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) + 
+    scale_fill_manual(values = color_palette) +  
+    labs(title = "Grouped Barplot: Clusters / Target", 
+         x = "Cluster", 
+         y = "Frequenza Relativa (%)", 
+         fill = "Target") +
+    theme_minimal() +
+    geom_text(aes(label = paste0(round(Freq, 1), "%")), 
+              position = position_dodge(width = 0.7), 
+              vjust = -0.5, 
+              size = 4) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+  ggsave("grafici/cluster_target_plot.pdf", plot = cluster_target_plot, width = 8, height = 6)
+}
+
+# Visualizzazione 2D dei cluster
+cluster_colors <- c("1" = "#f87a71", "2" = "#7cae00", "3" = "#14c4c9", "4" = "#c97fff")  
+
+plot_2d <- ggplot(data_pca, aes(x = PC1, y = PC2, color = Cluster)) +
+  geom_point(size = 3, alpha = 0.7) +
+  scale_color_manual(values = cluster_colors) +
+  labs(title = "Cluster Visualization (2D)",
+       x = "PC1",
+       y = "PC2",
+       color = "Cluster") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))  
+
+ggsave("grafici/plot_2d.pdf", plot = plot_2d, width = 8, height = 6)
+
+
+
+
+```
+
+```{r}
+####### COMPLETED EXAMS RATIO #####
+
+if ("Completed_exams_ratio" %in% colnames(data) & "Cluster" %in% colnames(data)) {
+  
+  data$Cluster <- as.factor(data$Cluster)
+
+  # Calcolare i limiti per l'asse Y per uniformare il boxplot
+  min_y_box <- floor(min(data$Completed_exams_ratio, na.rm = TRUE))
+  max_y_box <- ceiling(max(data$Completed_exams_ratio, na.rm = TRUE))
+
+  # Creazione Boxplot
+  boxplot_clusters <- ggplot(data, aes(x = Cluster, y = Completed_exams_ratio, fill = Cluster)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, color = "black") + 
+    labs(title = "Completed Exams Ratio",
+         x = "Cluster",
+         y = "Completed Exams (%)") +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.2) +  
+    scale_fill_manual(values = c("1" = "#f87a71", "2" = "#7cae00", "3" = "#14c4c9", "4" = "#c97fff")) + 
+    scale_y_continuous(breaks = seq(min_y_box, max_y_box, by = 20)) +  
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+          axis.title.x = element_blank(),
+          axis.text.x = element_text(face = "bold", size = 12),
+          axis.ticks.x = element_blank()) +
+    coord_cartesian(ylim = c(min_y_box, max_y_box))
+
+  # Salvataggio del grafico in PDF
+  ggsave("grafici/Clustering_Completed_exams_ratio_boxplot.pdf", 
+       plot = boxplot_clusters, width = 12, height = 6)
+  
+  print(boxplot_clusters)
+
+} else {
+  print("Errore: La colonna 'Completed_exams_ratio' o 'Cluster' non è presente nel dataset.")
+}
+
+
+
+```
+
+```{r}
+###### PASSED EXAMS RATIO ######
+
+
+if ("Passed_exams_ratio" %in% colnames(data) & "Cluster" %in% colnames(data)) {
+  
+  data$Cluster <- as.factor(data$Cluster)
+
+  # Calcolare i limiti per l'asse Y per uniformare il boxplot
+  min_y_box <- floor(min(data$Passed_exams_ratio, na.rm = TRUE))
+  max_y_box <- ceiling(max(data$Passed_exams_ratio, na.rm = TRUE))
+
+  # Creazione del Boxplot 
+  boxplot_clusters <- ggplot(data, aes(x = Cluster, y = Passed_exams_ratio, fill = Cluster)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, color = "black") + 
+    labs(title = "Passed Exams Ratio",
+         x = "Cluster",
+         y = "Passed Exams (%)") +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.2) +  
+    scale_fill_manual(values = c("1" = "#f87a71", "2" = "#7cae00", "3" = "#14c4c9", "4" = "#c97fff")) + 
+    scale_y_continuous(breaks = seq(min_y_box, max_y_box, by = 20)) +  
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+          axis.title.x = element_blank(),
+          axis.text.x = element_text(face = "bold", size = 12),
+          axis.ticks.x = element_blank()) +
+    coord_cartesian(ylim = c(min_y_box, max_y_box))
+
+  ggsave("grafici/Clustering_Passed_exams_ratio_boxplot.pdf", 
+         plot = boxplot_clusters, width = 12, height = 6)
+  
+  print(boxplot_clusters)
+
+} else {
+  print("Errore: La colonna 'Passed_exams_ratio' o 'Cluster' non è presente nel dataset.")
+}
+
+```
+
+```{r}
+###### CURRICULAR UNITS GRADE ######
+
+# Librerie
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+
+if (all(c("CU_grade_1st_sem_clean", "CU_grade_2nd_sem_clean", "Cluster") %in% colnames(data))) {
+  
+  # Convertire Cluster in fattore
+  data$Cluster <- as.factor(data$Cluster)
+
+  # Definizione dei limiti Y per uniformare i boxplot
+  min_y_box <- floor(min(c(data$CU_grade_1st_sem_clean, data$CU_grade_2nd_sem_clean), na.rm = TRUE))
+  max_y_box <- ceiling(max(c(data$CU_grade_1st_sem_clean, data$CU_grade_2nd_sem_clean), na.rm = TRUE) * 1.1)
+
+  # Boxplot per il 1° semestre, suddiviso per cluster
+  box_1st <- ggplot(data, aes(x = Cluster, y = CU_grade_1st_sem_clean, fill = Cluster)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, color = "black") +
+    labs(subtitle = "1st Semester", y = "Grade") +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.2) +
+    scale_fill_manual(values = c("1" = "#f87a71", "2" = "#7cae00", "3" = "#14c4c9", "4" = "#c97fff")) +
+    scale_y_continuous(breaks = seq(min_y_box, max_y_box, by = 2)) +  
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(face = "bold", size = 12),
+          axis.ticks.x = element_blank(),
+          plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+    coord_cartesian(ylim = c(min_y_box, max_y_box))
+
+  # Boxplot per il 2° semestre, suddiviso per cluster
+  box_2nd <- ggplot(data, aes(x = Cluster, y = CU_grade_2nd_sem_clean, fill = Cluster)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, color = "black") +
+    labs(subtitle = "2nd Semester", y = "Grade") +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.2) +
+    scale_fill_manual(values = c("1" = "#f87a71", "2" = "#7cae00", "3" = "#14c4c9", "4" = "#c97fff")) +
+    scale_y_continuous(breaks = seq(min_y_box, max_y_box, by = 2)) +  
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(face = "bold", size = 12),
+          axis.ticks.x = element_blank(),
+          plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+    coord_cartesian(ylim = c(min_y_box, max_y_box))
+
+  # COMBINAZIONE DEI BOXPLOT
+  combined_plot <- (box_1st | box_2nd) +
+    plot_annotation(title = "Curricular Unit Grades") &  
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+  # Salvataggio del grafico in PDF
+  ggsave("grafici/Clustering_Boxplot_Curricular_Unit_Grades_by_Cluster.pdf", 
+         plot = combined_plot, width = 12, height = 6)
+
+  print(combined_plot)
+
+} else {
+  print("Errore: Le colonne 'CU_grade_1st_sem_clean', 'CU_grade_2nd_sem_clean' o 'Cluster' non sono presenti nel dataset.")
+}
+
+
+```
+
+
+```{r}
+##### CURRICULAR UNITS ENROLLED ######
+
+# Librerie
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+
+if (all(c("CU_enrolled_1st_sem_winsorized", "CU_enrolled_2nd_sem_winsorized", "Cluster") %in% colnames(data))) {
+  
+  # Convertire Cluster in fattore
+  data$Cluster <- as.factor(data$Cluster)
+
+  # Definizione dei limiti Y per uniformare i boxplot
+  min_y_box <- floor(min(c(data$CU_enrolled_1st_sem_winsorized, data$CU_enrolled_2nd_sem_winsorized), na.rm = TRUE))
+  max_y_box <- ceiling(max(c(data$CU_enrolled_1st_sem_winsorized, data$CU_enrolled_2nd_sem_winsorized), na.rm = TRUE) * 1.1)
+
+  # Boxplot per il 1° semestre
+  box_1st <- ggplot(data, aes(x = Cluster, y = CU_enrolled_1st_sem_winsorized, fill = Cluster)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, color = "black") +
+    labs(subtitle = "1st Semester", y = "CU") +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.2) +
+    scale_fill_manual(values = c("1" = "#f87a71", "2" = "#7cae00", "3" = "#14c4c9", "4" = "#c97fff")) +
+    scale_y_continuous(breaks = seq(min_y_box, max_y_box, by = 2)) +  
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(face = "bold", size = 12),
+          axis.ticks.x = element_blank(),
+          plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+    coord_cartesian(ylim = c(min_y_box, max_y_box))
+
+  # Boxplot per il 2° semestre
+  box_2nd <- ggplot(data, aes(x = Cluster, y = CU_enrolled_2nd_sem_winsorized, fill = Cluster)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, color = "black") +
+    labs(subtitle = "2nd Semester", y = "Units Enrolled") +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.2) +
+    scale_fill_manual(values = c("1" = "#f87a71", "2" = "#7cae00", "3" = "#14c4c9", "4" = "#c97fff")) +
+    scale_y_continuous(breaks = seq(min_y_box, max_y_box, by = 2)) +  
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(face = "bold", size = 12),
+          axis.ticks.x = element_blank(),
+          plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+    coord_cartesian(ylim = c(min_y_box, max_y_box))
+
+  # COMBINAZIONE DEI BOXPLOT
+  combined_plot <- (box_1st | box_2nd) +
+    plot_annotation(title = "Curricular Units Enrolled") &  
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+  # Salvataggio del grafico in PDF
+  ggsave("grafici/Clustering_Boxplot_Curricular_Units_Enrolled_by_Cluster.pdf", 
+         plot = combined_plot, width = 12, height = 6)
+
+  print(combined_plot)
+
+} else {
+  print("Errore: Le colonne 'CU_enrolled_1st_sem_winsorized', 'CU_enrolled_2nd_sem_winsorized' o 'Cluster' non sono presenti nel dataset.")
+}
+```
+
+
+```{r}
+##### CURRICULAR UNITS EVALUATIONS #####
+
+# Librerie 
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+
+if (all(c("CU_evaluations_1st_sem_winsorized", "CU_evaluations_2nd_sem_winsorized", "Cluster") %in% colnames(data))) {
+  
+  # Convertire Cluster in fattore 
+  data$Cluster <- as.factor(data$Cluster)
+
+  # Definizione dei limiti Y per uniformare i boxplot
+  min_y_box <- floor(min(c(data$CU_evaluations_1st_sem_winsorized, data$CU_evaluations_2nd_sem_winsorized), na.rm = TRUE))
+  max_y_box <- ceiling(max(c(data$CU_evaluations_1st_sem_winsorized, data$CU_evaluations_2nd_sem_winsorized), na.rm = TRUE) * 1.1)
+
+  # Boxplot per il 1° semestre
+  box_1st <- ggplot(data, aes(x = Cluster, y = CU_evaluations_1st_sem_winsorized, fill = Cluster)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, color = "black") +
+    labs(subtitle = "1st Semester", y = "Evaluations") +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.2) +
+    scale_fill_manual(values = c("1" = "#f87a71", "2" = "#7cae00", "3" = "#14c4c9", "4" = "#c97fff")) +
+    scale_y_continuous(breaks = seq(min_y_box, max_y_box, by = 2)) +  
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(face = "bold", size = 12),
+          axis.ticks.x = element_blank(),
+          plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+    coord_cartesian(ylim = c(min_y_box, max_y_box))
+
+  # Boxplot per il 2° semestre
+  box_2nd <- ggplot(data, aes(x = Cluster, y = CU_evaluations_2nd_sem_winsorized, fill = Cluster)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, color = "black") +
+    labs(subtitle = "2nd Semester", y = "Evaluations") +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.2) +
+    scale_fill_manual(values = c("1" = "#f87a71", "2" = "#7cae00", "3" = "#14c4c9", "4" = "#c97fff")) +
+    scale_y_continuous(breaks = seq(min_y_box, max_y_box, by = 2)) +  
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(face = "bold", size = 12),
+          axis.ticks.x = element_blank(),
+          plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+    coord_cartesian(ylim = c(min_y_box, max_y_box))
+
+  # COMBINAZIONE DEI BOXPLOT
+  combined_plot <- (box_1st | box_2nd) +
+    plot_annotation(title = "Curricular Units Evaluations") &  
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+  # Salvataggio del grafico in PDF
+  ggsave("grafici/Clustering_Boxplot_Curricular_Units_Evaluations_by_Cluster.pdf", 
+         plot = combined_plot, width = 12, height = 6)
+
+  print(combined_plot)
+
+} else {
+  print("Errore: Le colonne 'CU_evaluations_1st_sem_winsorized', 'CU_evaluations_2nd_sem_winsorized' o 'Cluster' non sono presenti nel dataset.")
+}
+
+```
+
+
+```{r}
+###### CURRICULAR UNITS APPROVED ######
+
+# Librerie
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+
+if (all(c("CU_approved_1st_sem_winsorized", "CU_approved_2nd_sem_winsorized", "Cluster") %in% colnames(data))) {
+  
+  # Convertire Cluster in fattore
+  data$Cluster <- as.factor(data$Cluster)
+
+  # Definizione dei limiti Y per uniformare i boxplot
+  min_y_box <- floor(min(c(data$CU_approved_1st_sem_winsorized, data$CU_approved_2nd_sem_winsorized), na.rm = TRUE))
+  max_y_box <- ceiling(max(c(data$CU_approved_1st_sem_winsorized, data$CU_approved_2nd_sem_winsorized), na.rm = TRUE) * 1.1)
+
+  # Boxplot per il 1° semestre
+  box_1st <- ggplot(data, aes(x = Cluster, y = CU_approved_1st_sem_winsorized, fill = Cluster)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, color = "black") +
+    labs(subtitle = "1st Semester", y = "CU") +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.2) +
+    scale_fill_manual(values = c("1" = "#f87a71", "2" = "#7cae00", "3" = "#14c4c9", "4" = "#c97fff")) +
+    scale_y_continuous(breaks = seq(min_y_box, max_y_box, by = 2)) +  
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(face = "bold", size = 12),
+          axis.ticks.x = element_blank(),
+          plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+    coord_cartesian(ylim = c(min_y_box, max_y_box))
+
+  # Boxplot per il 2° semestre
+  box_2nd <- ggplot(data, aes(x = Cluster, y = CU_approved_2nd_sem_winsorized, fill = Cluster)) +
+    geom_boxplot(alpha = 0.7, width = 0.4, color = "black") +
+    labs(subtitle = "2nd Semester", y = "Approved Courses") +
+    theme_minimal() +
+    stat_boxplot(geom = "errorbar", width = 0.2) +
+    scale_fill_manual(values = c("1" = "#f87a71", "2" = "#7cae00", "3" = "#14c4c9", "4" = "#c97fff")) +
+    scale_y_continuous(breaks = seq(min_y_box, max_y_box, by = 2)) +  
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(face = "bold", size = 12),
+          axis.ticks.x = element_blank(),
+          plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+    coord_cartesian(ylim = c(min_y_box, max_y_box))
+
+  # COMBINAZIONE DEI BOXPLOT
+  combined_plot <- (box_1st | box_2nd) +
+    plot_annotation(title = "Curricular Units Approved") &  
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+  # Salvataggio del grafico in PDF
+  ggsave("grafici/Clustering_Boxplot_Curricular_Units_Approved_by_Cluster.pdf", 
+         plot = combined_plot, width = 12, height = 6)
+
+  print(combined_plot)
+
+} else {
+  print("Errore: Le colonne 'CU_approved_1st_sem_winsorized', 'CU_approved_2nd_sem_winsorized' o 'Cluster' non sono presenti nel dataset.")
+}
+
+```

@@ -1,61 +1,78 @@
 ```{r}
-# Caricare i pacchetti necessari
+# Librerie
 if(!require(kernlab)) install.packages("kernlab", dependencies = TRUE)
 if(!require(ggplot2)) install.packages("ggplot2", dependencies = TRUE)
+if(!require(here)) install.packages("here", dependencies = TRUE)
+if(!require(dplyr)) install.packages("dplyr", dependencies = TRUE)
 
 library(kernlab)
 library(ggplot2)
 library(here)
 library(dplyr)
 
-# Lettura del dataset
+# Caricamento del dataset
 df <- read.csv(here("dataset/data_aggregated.csv"), sep = ",", header = TRUE, check.names = TRUE)
 
 # Rimuovere le righe con voto 0 in uno dei due semestri
 df_filtered <- subset(df, Curricular_units_1st_sem_.grade. > 0 & Curricular_units_2nd_sem_.grade. > 0)
 
-# Selezionare le variabili di interesse
+# Selezione Variabile
 X <- df_filtered$Curricular_units_1st_sem_.grade.
 y <- df_filtered$Curricular_units_2nd_sem_.grade.
-
-# Creare un data frame con i dati
 data <- data.frame(X, y)
 
-# Suddividere il dataset in training (80%) e test (20%)
+# Divisione del dataset in training (80%) e test (20%)
 set.seed(42)
 train_idx <- sample(1:nrow(data), 0.8 * nrow(data))
 train_data <- data[train_idx, ]
 test_data <- data[-train_idx, ]
 
-# Creazione del modello Gaussian Process (usando il kernel RBF)
+# Creazione del modello Gaussian Process: Kernel RBF
 gpr_model <- gausspr(y ~ X, data = train_data, kernel = "rbfdot")
 
-# Predire i valori su un intervallo continuo per ottenere una curva più fluida
+# Predizioni
+y_pred_test <- predict(gpr_model, test_data)
+
+# Calcolo di R^2
+ss_total <- sum((test_data$y - mean(test_data$y))^2)
+ss_residual <- sum((test_data$y - y_pred_test)^2)
+R2 <- 1 - (ss_residual / ss_total)
+
+# Calcolo di RSE
+n <- nrow(test_data)
+p <- 1  # Una variabile indipendente
+RSE <- sqrt(ss_residual / (n - p - 1))
+
+# Predizione per il grafico
 X_seq <- seq(min(test_data$X), max(test_data$X), length.out = 100)
 pred_data <- data.frame(X = X_seq)
 y_pred <- predict(gpr_model, pred_data)
 
-# Creare intervallo di confidenza simulato (GPR non restituisce direttamente l'incertezza)
-sigma <- sd(y_pred - mean(y_pred))  # Simula una deviazione standard basata sui residui
-y_pred_lower <- y_pred - 1.96 * sigma  # Intervallo di confidenza 95%
+# Creazione intervallo di confidenza
+sigma <- sd(y_pred - mean(y_pred))
+y_pred_lower <- y_pred - 1.96 * sigma
 y_pred_upper <- y_pred + 1.96 * sigma
 
-# Creare il grafico con l'intervallo di confidenza
+# Creazione grafico
 plot_gpr <- ggplot() +
-  geom_point(aes(x = test_data$X, y = test_data$y), color = "brown", alpha = 0.6) + # Punti reali
-  geom_line(aes(x = X_seq, y = y_pred), color = "blue", size = 1) +  # Linea predetta
-  geom_ribbon(aes(x = X_seq, ymin = y_pred_lower, ymax = y_pred_upper), fill = "blue", alpha = 0.2) + # Banda di confidenza
+  geom_point(aes(x = test_data$X, y = test_data$y), color = "brown", alpha = 0.6) +
+  geom_line(aes(x = X_seq, y = y_pred), color = "blue", size = 1) + 
+  geom_ribbon(aes(x = X_seq, ymin = y_pred_lower, ymax = y_pred_upper), fill = "blue", alpha = 0.2) +
   labs(title = "Regressione con Gaussian Process e Intervallo di Confidenza",
+       subtitle = paste("R² =", round(R2, 3), " | RSE =", round(RSE, 3)),
        x = "Voto 1° semestre",
        y = "Voto 2° semestre") +
   theme_minimal()
 
-# Salvare il grafico in PDF
+# Salvataggio Grafico in PDF
 pdf("grafici/gpr_confidence_plot.pdf", width = 8, height = 6)
 print(plot_gpr)
 dev.off()
 
-# Stampare il grafico a schermo
+# Stampa risultati
 print(plot_gpr)
+cat("R²:", round(R2, 3), "\n")
+cat("RSE:", round(RSE, 3), "\n")
+
 ```
 

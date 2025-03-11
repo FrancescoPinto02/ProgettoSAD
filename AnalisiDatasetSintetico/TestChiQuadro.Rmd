@@ -1,0 +1,69 @@
+```{r}
+library(here)
+
+# Caricare il dataset
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = FALSE)
+head(data)
+
+# Funzione Test Chi Quadro
+chi_square_test <- function(data, variable, num_intervals) {
+  
+  var_data <- na.omit(data[[variable]])  
+  n <- length(var_data)  
+  
+  # Calcolare media e deviazione standard
+  m <- mean(var_data)
+  d <- sd(var_data)
+  
+  # Calcolare i quantili per suddividere i dati in classi
+  a <- numeric(num_intervals - 1)
+  for (i in 1:(num_intervals - 1)) {
+    a[i] <- qnorm(i / num_intervals, mean = m, sd = d)
+  }
+  
+  # Calcolare il numero di osservazioni in ogni intervallo
+  nint <- numeric(num_intervals)
+  nint[1] <- length(which(var_data < a[1]))
+  for (i in 2:(num_intervals - 1)) {
+    nint[i] <- length(which(var_data >= a[i - 1] & var_data < a[i]))
+  }
+  nint[num_intervals] <- length(which(var_data >= a[num_intervals - 1]))
+  
+  
+  if (any(nint < 5)) {
+    cat("Attenzione: Ci sono intervalli con meno di 5 osservazioni! Considera di ridurre il numero di classi.\n")
+  }
+  
+  # Calcolare il valore del chi-quadro
+  chi2 <- sum(((nint - n / num_intervals) / sqrt(n / num_intervals))^2)
+  
+  # Determinare il valore critico del test
+  k <- 2  # Numero di parametri stimati
+  alpha <- 0.05  # Livello di significatività
+  chi2_lower <- qchisq(alpha / 2, df = num_intervals - k - 1)
+  chi2_upper <- qchisq(1 - alpha / 2, df = num_intervals - k - 1)
+  
+  # Stampare i risultati
+  cat("\nVariabile analizzata:", variable)
+  cat("\nNumero di intervalli scelto:", num_intervals)
+  cat("\nValore del Chi-Quadro:", chi2)
+  cat("\nIntervallo critico: [", chi2_lower, ",", chi2_upper, "]\n")
+  
+  # Conclusione del test
+  if (chi2 < chi2_upper & chi2 > chi2_lower) {
+    cat("Non si rifiuta l'ipotesi di normalità (p-value > 0.05)\n")
+  } else {
+    cat("Si rifiuta l'ipotesi di normalità (p-value < 0.05)\n")
+  }
+}
+
+# Esecuzione Test
+chi_square_test(data, "GDP", num_intervals = 32) 
+chi_square_test(data, "Inflation_rate", num_intervals = 35)
+chi_square_test(data, "Unemployment_rate", num_intervals = 33)
+chi_square_test(data, "Admission_grade", num_intervals = 22)
+chi_square_test(data, "Previous_qualification_grade", num_intervals = 24)
+chi_square_test(data, "Curricular_units_1st_sem_(grade)", num_intervals = 24)
+chi_square_test(data, "Curricular_units_2nd_sem_(grade)", num_intervals = 22)
+```
+

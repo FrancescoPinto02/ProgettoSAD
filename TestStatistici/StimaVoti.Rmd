@@ -1,42 +1,11 @@
 ```{r}
+###### STIMA 1st YEAR GRADE ######
+
+# Librerie
 library(here)
 library(corrplot)
 
-data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = TRUE)
-head(data)
-
-# Selezionare le colonne dei voti dei due semestri
-data_grades <- data[, c("Curricular_units_1st_sem_.grade.", "Curricular_units_2nd_sem_.grade.")]
-colnames(data_grades) <- c("Grade_1st_sem", "Grade_2nd_sem")
-
-# Rimuovere le righe in cui entrambi i voti sono 0
-data_grades <- data_grades[!(data_grades$Grade_1st_sem == 0 & data_grades$Grade_2nd_sem == 0), ]
-print(data_grades)
-
-# Creare la variabile con la media dei due semestri
-data_grades$Grade_1st_year <- rowMeans(data_grades, na.rm = TRUE)
-
-# Calcolare la media e la deviazione standard della variabile Grade_1st_year
-sample_mean <- mean(data_grades$Grade_1st_year)
-sample_sd <- sd(data_grades$Grade_1st_year)
-n <- nrow(data_grades)
-
-# Definire alpha per il livello di confidenza (modificabile)
-alpha <- 0.05  # Cambia questo valore per un diverso livello di confidenza
-
-# Metodo pivotale basato sulla distribuzione normale standard
-z_value <- qnorm(1 - alpha / 2)
-ci_lower <- sample_mean - (z_value * (sample_sd / sqrt(n)))
-ci_upper <- sample_mean + (z_value * (sample_sd / sqrt(n)))
-
-# Stampare il risultato
-cat("Intervallo di confidenza al", (1 - alpha) * 100, "% (metodo pivotale con Z): [", round(ci_lower, 2), ",", round(ci_upper, 2), "]\n")
-```
-
-```{r}
-library(here)
-library(corrplot)
-
+# Caricamento Dataset
 data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = TRUE)
 head(data)
 
@@ -50,32 +19,61 @@ data_grades <- data_grades[!(data_grades$Grade_1st_sem == 0 & data_grades$Grade_
 # Creare la variabile con la media dei due semestri
 data_grades$Grade_1st_year <- rowMeans(data_grades[, c("Grade_1st_sem", "Grade_2nd_sem")], na.rm = TRUE)
 
-# Definire alpha per il livello di confidenza (modificabile)
-alpha <- 0.01  # Cambia questo valore per un diverso livello di confidenza
-z_value <- qnorm(1 - alpha / 2, mean=0, sd=1)
+# Calcolare la media e la deviazione standard della variabile Grade_1st_year
+sample_mean <- mean(data_grades$Grade_1st_year)
+print(sample_mean)
+sample_sd <- sd(data_grades$Grade_1st_year)
+print(sample_sd)
+n <- nrow(data_grades)
+print(n)
 
-# Calcolare statistiche per maschi (Gender = 1) e femmine (Gender = 0)
+# ALPHA (Livello di Confidenza)
+alpha <- 0.01 
+
+# Metodo pivotale con normale standard
+z_value <- qnorm(1 - alpha / 2)
+ci_lower <- sample_mean - (z_value * (sample_sd / sqrt(n)))
+ci_upper <- sample_mean + (z_value * (sample_sd / sqrt(n)))
+
+# Stampa Intervallo di Confidenza
+cat("Intervallo di confidenza al", (1 - alpha) * 100, "%: [", round(ci_lower, 3), ",", round(ci_upper, 3), "]\n")
+
+# Analisi per genere
+# Separare i dati per maschi (Gender = 1) e femmine (Gender = 0)
 male_data <- data_grades[data_grades$Gender == 1, ]
 female_data <- data_grades[data_grades$Gender == 0, ]
 
+# Statistiche per i maschi
 mean_male <- mean(male_data$Grade_1st_year)
+print(mean_male)
 sd_male <- sd(male_data$Grade_1st_year)
+print(sd_male)
 n_male <- nrow(male_data)
+print(n_male)
 
+# Statistiche per le femmine
 mean_female <- mean(female_data$Grade_1st_year)
+print(mean_female)
 sd_female <- sd(female_data$Grade_1st_year)
+print(sd_female)
 n_female <- nrow(female_data)
+print(n_female)
 
 # Calcolare l'intervallo di confidenza per la differenza delle medie
 se_diff <- sqrt((sd_male^2 / n_male) + (sd_female^2 / n_female))
-ci_lower <- (mean_male - mean_female) - z_value * se_diff
-ci_upper <- (mean_male - mean_female) + z_value * se_diff
+ci_lower_diff <- (mean_male - mean_female) - z_value * se_diff
+ci_upper_diff <- (mean_male - mean_female) + z_value * se_diff
 
 # Stampare i risultati
-cat("Intervallo di confidenza al", (1 - alpha) * 100, "% per la differenza tra maschi e femmine: [", round(ci_lower, 2), ",", round(ci_upper, 2), "]\n")
+cat("Intervallo di confidenza al", (1 - alpha) * 100, "% per la differenza tra maschi e femmine: [", round(ci_lower_diff, 3), ",", round(ci_upper_diff, 3), "]\n")
+
 ```
 
+
 ```{r}
+###### STIMA ADMISSION GRADE #####
+
+
 library(here)
 library(corrplot)
 
@@ -84,8 +82,8 @@ data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.na
 # Selezionare le colonne Gender e Admission Grade
 data_grades <- data[, c("Gender", "Admission_grade")]
 
-# Definire alpha per il livello di confidenza (modificabile)
-alpha <- 0.01  # Cambia questo valore per un diverso livello di confidenza
+# ALPHA
+alpha <- 0.01 
 z_value <- qnorm(1 - alpha / 2)
 
 # Calcolare l'intervallo di confidenza per Admission Grade
@@ -104,34 +102,43 @@ male_data <- data_grades[data_grades$Gender == 1, ]
 female_data <- data_grades[data_grades$Gender == 0, ]
 
 mean_male <- mean(male_data$Admission_grade)
+print(mean_male)
 sd_male <- sd(male_data$Admission_grade)
+print(sd_male)
 n_male <- nrow(male_data)
+print(n_male)
 
 mean_female <- mean(female_data$Admission_grade)
+print(mean_female)
 sd_female <- sd(female_data$Admission_grade)
+print(sd_female)
 n_female <- nrow(female_data)
+print(n_female)
 
 # Calcolare l'intervallo di confidenza per la differenza delle medie su Admission Grade
 se_diff <- sqrt((sd_male^2 / n_male) + (sd_female^2 / n_female))
+print(se_diff)
 ci_lower_diff <- (mean_male - mean_female) - z_value * se_diff
 ci_upper_diff <- (mean_male - mean_female) + z_value * se_diff
 
 # Stampare i risultati
-cat("Intervallo di confidenza al", (1 - alpha) * 100, "% per Admission Grade: [", round(ci_lower_global, 2), ",", round(ci_upper_global, 2), "]\n")
-cat("Intervallo di confidenza al", (1 - alpha) * 100, "% per la differenza tra maschi e femmine su Admission Grade: [", round(ci_lower_diff, 2), ",", round(ci_upper_diff, 2), "]\n")
+cat("Intervallo di confidenza al", (1 - alpha) * 100, "% per Admission Grade: [", round(ci_lower_global, 3), ",", round(ci_upper_global, 3), "]\n")
+cat("Intervallo di confidenza al", (1 - alpha) * 100, "% per la differenza tra maschi e femmine su Admission Grade: [", round(ci_lower_diff, 3), ",", round(ci_upper_diff, 3), "]\n")
 ```
 
 ```{r}
+###### STIMA PREVIOUS QUALIFICATION GRADE ######
+
 library(here)
 library(corrplot)
 
 data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = TRUE)
 
-# Selezionare le colonne Gender e Admission Grade
+# Selezionare le colonne Gender e PRevious Qualification Grade
 data_grades <- data[, c("Gender", "Previous_qualification_.grade.")]
 
-# Definire alpha per il livello di confidenza (modificabile)
-alpha <- 0.01  # Cambia questo valore per un diverso livello di confidenza
+# ALPHA
+alpha <- 0.01
 z_value <- qnorm(1 - alpha / 2)
 
 # Calcolare l'intervallo di confidenza per Admission Grade
@@ -157,13 +164,22 @@ mean_female <- mean(female_data$Previous_qualification_.grade.)
 sd_female <- sd(female_data$Previous_qualification_.grade.)
 n_female <- nrow(female_data)
 
+print(mean_male)
+print(sd_male)
+print(n_male)
+
+print(mean_female)
+print(sd_female)
+print(n_female)
+
 # Calcolare l'intervallo di confidenza per la differenza delle medie su Admission Grade
 se_diff <- sqrt((sd_male^2 / n_male) + (sd_female^2 / n_female))
+print(se_diff)
 ci_lower_diff <- (mean_male - mean_female) - z_value * se_diff
 ci_upper_diff <- (mean_male - mean_female) + z_value * se_diff
 
 # Stampare i risultati
-cat("Intervallo di confidenza al", (1 - alpha) * 100, "% per Previous Qualification Grade: [", round(ci_lower_global, 2), ",", round(ci_upper_global, 2), "]\n")
-cat("Intervallo di confidenza al", (1 - alpha) * 100, "% per la differenza tra maschi e femmine su Previous Qualification Grade: [", round(ci_lower_diff, 2), ",", round(ci_upper_diff, 2), "]\n")
+cat("Intervallo di confidenza al", (1 - alpha) * 100, "% per Previous Qualification Grade: [", round(ci_lower_global, 3), ",", round(ci_upper_global, 3), "]\n")
+cat("Intervallo di confidenza al", (1 - alpha) * 100, "% per la differenza tra maschi e femmine su Previous Qualification Grade: [", round(ci_lower_diff, 3), ",", round(ci_upper_diff, 3), "]\n")
 ```
 

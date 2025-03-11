@@ -99,8 +99,6 @@ data <- data %>%
 data <- data %>%
   mutate(CU_approved_1st_sem_winsorized = ifelse(`CU_approved_1st_sem_winsorized` > 9, 9, `CU_approved_1st_sem_winsorized`))
 
-#data$CU_grade_1st_sem_clean <- winsorize(data$CU_grade_1st_sem_clean)
-#data$CU_grade_2nd_sem_clean <- winsorize(data$CU_grade_2nd_sem_clean)
 
 ```
 
@@ -363,7 +361,7 @@ print(boxplot_passed_exams)
 
 ```
 ```{r}
-# 📌 PCA ANALYSIS 📌
+# PCA ANALYSIS
 
 # Librerie necessarie
 library(ggplot2)
@@ -377,13 +375,7 @@ pca_vars <- c("Completed_exams_ratio", "Passed_exams_ratio",
              "CU_approved_1st_sem_winsorized", "CU_approved_2nd_sem_winsorized",
              "CU_grade_1st_sem_clean", "CU_grade_2nd_sem_clean")
 
-#pca_vars <- c("Completed_exams_ratio", "Passed_exams_ratio", 
-    #          "Curricular_units_1st_sem_(approved)", "Curricular_units_2nd_sem_(approved)",
-       #       "Curricular_units_1st_sem_(enrolled)", "Curricular_units_2nd_sem_(enrolled)",
-      #        "Curricular_units_1st_sem_(evaluations)", "Curricular_units_2nd_sem_(evaluations)",
-       #       "Curricular_units_1st_sem_(grade)", "Curricular_units_2nd_sem_(grade)")
 
-# Creare un dataset solo con le variabili di interesse
 pca_data <- data %>%
   select(all_of(pca_vars)) %>%
   na.omit()
@@ -401,20 +393,17 @@ colnames(pca_components) <- c("PC1", "PC2", "PC3")
 # Aggiungere le componenti principali al dataset originale
 data_pca <- cbind(data[rownames(pca_components), ], pca_components)
 
-# 📌 Scree Plot: Varianza spiegata da ogni componente principale
+# Scree Plot: Varianza spiegata da ogni componente principale
 scree_plot <- fviz_eig(pca_result, addlabels = TRUE, ylim = c(0, 100)) +
   ggtitle("Scree Plot: Explained Variance by Principal Components") +
   theme_minimal()+
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
 
-
-# Mostrare il grafico a schermo
 print(scree_plot)
 
-# Salvare il grafico in PDF (assicurati che la cartella "Grafici" esista)
+# Salvataggio PDF
 ggsave("Grafici/ScreePlot_PCA.pdf", plot = scree_plot, width = 8, height = 6)
 
-# Stampare le prime righe del dataset con le nuove componenti
 head(data_pca)
 
 

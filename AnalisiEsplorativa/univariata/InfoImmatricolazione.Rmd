@@ -3,6 +3,8 @@
 library(ggplot2)
 library(here)
 library(dplyr)
+library(patchwork)
+library(moments)
 
 # Caricamento Dataset
 data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = TRUE)
@@ -14,12 +16,9 @@ head(data)
 ```
 
 ```{r}
-# ATTENDANCE
+##### ATTENDANCE #######
 
-# Libreria necessaria
-library(ggplot2)
-
-# Sostituzione dei valori 0 e 1 con le etichette desiderate
+# Sostituzione dei valori 0 e 1 con le etichette
 data$Attendance <- factor(data$Attendance, levels = c(0, 1), labels = c("0-Evening", "1-Daytime"))
 
 # Calcolo delle frequenze relative per Attendance
@@ -44,12 +43,10 @@ ggsave("Grafici/PieChart_Attendance.pdf", plot = p, width = 10, height = 6)
 
 
 ```{r}
-# INTERNATIONAL
+##### INTERNATIONAL #####
 
-# Libreria necessaria
-library(ggplot2)
 
-# Sostituzione dei valori 0 e 1 con le etichette desiderate
+# Sostituzione dei valori 0 e 1 con le etichette
 data$International <- factor(data$International, levels = c(0, 1), labels = c("0-NO", "1-YES"))
 
 # Calcolo delle frequenze relative
@@ -59,14 +56,14 @@ international_data <- data.frame(International = names(freq_international),
 international_data$Perc <- international_data$Count / sum(international_data$Count) * 100
 international_data$Label <- paste0(round(international_data$Perc, 1), "%")  
 
-# Creazione del grafico a torta con colori personalizzati
+# Creazione del grafico a torta
 p1 <- ggplot(international_data, aes(x = "", y = Count, fill = International)) +
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y") +
   theme_void() +
   labs(title = "Pie Chart: International", fill = "Legenda") +
   geom_text(aes(label = Label), position = position_stack(vjust = 0.5)) +  
-  scale_fill_manual(values = c("#3498db", "#2ecc71")) +  # Blu e Verde
+  scale_fill_manual(values = c("#3498db", "#2ecc71")) + 
   theme(plot.title = element_text(hjust = 0.5, face="bold"))
 
 # Salvataggio del grafico in PDF
@@ -75,8 +72,8 @@ ggsave("Grafici/PieChart_International.pdf", plot = p1, width = 10, height = 6)
 ```
 
 ```{r}
-# EDUCATIONAL SPECIAL NEEDS
-# Sostituzione dei valori 0 e 1 con le etichette desiderate
+###### EDUCATIONAL SPECIAL NEEDS ########
+# Sostituzione dei valori 0 e 1 con le etichette 
 data$Educational_special_needs <- factor(data$Educational_special_needs, levels = c(0, 1), labels = c("0-NO", "1-YES"))
 
 # Calcolo delle frequenze relative
@@ -86,14 +83,14 @@ special_needs_data <- data.frame(Educational_special_needs = names(freq_special_
 special_needs_data$Perc <- special_needs_data$Count / sum(special_needs_data$Count) * 100
 special_needs_data$Label <- paste0(round(special_needs_data$Perc, 1), "%")  
 
-# Creazione del grafico a torta con colori personalizzati
+# Creazione del grafico a torta 
 p3 <- ggplot(special_needs_data, aes(x = "", y = Count, fill = Educational_special_needs)) +
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y") +
   theme_void() +
   labs(title = "Pie Chart: Educational Special Needs", fill = "Legenda") +
   geom_text(aes(label = Label), position = position_stack(vjust = 0.5)) +  
-  scale_fill_manual(values = c("#9b59b6", "#34495e")) +  # Viola e Grigio
+  scale_fill_manual(values = c("#9b59b6", "#34495e")) +
   theme(plot.title = element_text(hjust = 0.5, face="bold"))
 
 # Salvataggio del grafico in PDF
@@ -102,9 +99,9 @@ ggsave("Grafici/PieChart_Educational_Special_Needs.pdf", plot = p3, width = 10, 
 ```
 
 ```{r}
-# DISPLACED
+####### DISPLACED ######
 
-# Sostituzione dei valori 0 e 1 con le etichette desiderate
+# Sostituzione dei valori 0 e 1 con le etichette
 data$Displaced <- factor(data$Displaced, levels = c(0, 1), labels = c("0-NO", "1-YES"))
 
 # Calcolo delle frequenze relative
@@ -114,14 +111,14 @@ displaced_data <- data.frame(Displaced = names(freq_displaced),
 displaced_data$Perc <- displaced_data$Count / sum(displaced_data$Count) * 100
 displaced_data$Label <- paste0(round(displaced_data$Perc, 1), "%")  
 
-# Creazione del grafico a torta con colori personalizzati
+# Creazione del grafico a torta
 p2 <- ggplot(displaced_data, aes(x = "", y = Count, fill = Displaced)) +
   geom_bar(width = 1, stat = "identity") +
   coord_polar("y") +
   theme_void() +
   labs(title = "Pie Chart: Displaced", fill = "Legenda") +
   geom_text(aes(label = Label), position = position_stack(vjust = 0.5)) +  
-  scale_fill_manual(values = c("#e74c3c", "#f1c40f")) +  # Rosso e Giallo
+  scale_fill_manual(values = c("#e74c3c", "#f1c40f")) +  
   theme(plot.title = element_text(hjust = 0.5, face="bold"))
 
 # Salvataggio del grafico in PDF
@@ -129,10 +126,7 @@ ggsave("Grafici/PieChart_Displaced.pdf", plot = p2, width = 10, height = 6)
 ```
 
 ```{r}
-# APPLICATION ORDER
-
-# Librerie
-library(ggplot2)
+###### APPLICATION ORDER ######
 
 # Creazione del grafico originale
 original_freq_application <- table(data$Application_order)
@@ -147,7 +141,7 @@ p_original <- ggplot(original_application_data, aes(x = Order, y = Perc, fill = 
   theme_minimal() +
   geom_text(aes(label = paste0(round(Perc, 1), "%")), vjust = -0.5, size = 4) +
   theme(plot.title = element_text(hjust = 0.5, face="bold"),
-        legend.position = "none")  # Rimuove la legenda
+        legend.position = "none") 
 
 # Salvataggio del grafico originale
 ggsave("Grafici/Barplot_Application_Order_Original.pdf", plot = p_original, width = 10, height = 6)
@@ -168,24 +162,21 @@ application_data <- data.frame(Order = names(freq_application),
                                Count = as.numeric(freq_application))
 application_data$Perc <- application_data$Count / sum(application_data$Count) * 100
 
-# Creazione del barplot senza legenda dopo la rimozione dell'anomalia
+# Creazione del barplot dopo la rimozione dell'anomalia
 p <- ggplot(application_data, aes(x = Order, y = Perc, fill = Order)) +
   geom_bar(stat = "identity", width = 0.7) +
   labs(title = "Barplot: Application Order (Modified)", x = "Application Order", y = "Frequenza Relativa (%)") +
   theme_minimal() +
   geom_text(aes(label = paste0(round(Perc, 1), "%")), vjust = -0.5, size = 4) +
   theme(plot.title = element_text(hjust = 0.5, face="bold"),
-        legend.position = "none")  # Rimuove la legenda
+        legend.position = "none") 
 
 # Salvataggio del grafico modificato
 ggsave("Grafici/Barplot_Application_Order_Modified.pdf", plot = p, width = 10, height = 6)
 ```
 
 ```{r}
-# APPLICATION MODE
-
-# Librerie necessarie
-library(ggplot2)
+##### APPLICATION MODE #####
 
 # Calcolo delle frequenze relative per Application_mode
 freq_app_mode <- table(data$Application_mode)
@@ -216,7 +207,7 @@ ggsave("Grafici/Barplot_Application_Mode.pdf", plot = p1, width = 10, height = 6
 ```
 
 ```{r}
-# COURSE
+##### COURSE #####
 
 # Calcolo delle frequenze relative per Course
 freq_course <- table(data$Course)
@@ -249,7 +240,7 @@ ggsave("Grafici/Barplot_Course.pdf", plot = p2, width = 10, height = 6)
 ```
 
 ```{r}
-# PREVIOUS QUALIFICATION
+###### PREVIOUS QUALIFICATION #######
 
 # Calcolo delle frequenze relative per Previous_qualification
 freq_prev_qual <- table(data$Previous_qualification)
@@ -281,19 +272,10 @@ ggsave("Grafici/Barplot_Previous_Qualification.pdf", plot = p3, width = 10, heig
 ```
 
 ```{r}
-# PREVIOUS QUALIFICATION GRADE ANALYSIS
+###### PREVIOUS QUALIFICATION GRADE ANALYSIS #####
 
-# Librerie necessarie
-library(ggplot2)
-library(patchwork)
-library(moments)
 
-# Controllo se la colonna esiste
-if (!"Previous_qualification_grade" %in% colnames(data)) {
-  stop("La colonna 'Previous_qualification_grade' non esiste nel dataset.")
-}
-
-# Rimozione di eventuali valori mancanti
+# Rimozione valori mancanti
 prev_qual_grade_data <- na.omit(data$Previous_qualification_grade)
 
 # Istogramma con densità
@@ -301,7 +283,7 @@ hist_density_plot <- ggplot(data, aes(x = Previous_qualification_grade)) +
   geom_histogram(aes(y = ..density..), 
                  binwidth = diff(range(prev_qual_grade_data)) / 50,  
                  color = "black", fill = "#1f77b4", alpha = 0.6) +  # Blu
-  geom_density(color = "#d62728", size = 1) +  # Rosso
+  geom_density(color = "#d62728", size = 1) +  
   xlim(95, 200) +
   labs(subtitle = "Histogram & Density Function",
        x = "Grade",
@@ -310,9 +292,9 @@ hist_density_plot <- ggplot(data, aes(x = Previous_qualification_grade)) +
   theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
         plot.margin = margin(10, 10, 10, 10)) 
 
-# Boxplot accanto all'istogramma
+# Boxplot
 box_plot <- ggplot(data, aes(x = "", y = Previous_qualification_grade)) +
-  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +  # Azzurro
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +  
   labs(subtitle = "Boxplot", y = "Grade") +
   theme_minimal() +
   stat_boxplot(geom = "errorbar", width = 0.15) +
@@ -358,19 +340,14 @@ cat("Coefficiente di Variazione (CV %):", round(cv, 2), "%\n")
 ```{r}
 # ADMISSION GRADE ANALYSIS
 
-# Controllo se la colonna esiste
-if (!"Admission_grade" %in% colnames(data)) {
-  stop("La colonna 'Admission_grade' non esiste nel dataset.")
-}
-
-# Rimozione di eventuali valori mancanti
+# Rimozione valori mancanti
 admission_grade_data <- na.omit(data$Admission_grade)
 
 # Istogramma con densità
 hist_density_plot <- ggplot(data, aes(x = Admission_grade)) +
   geom_histogram(aes(y = ..density..), 
                  binwidth = diff(range(admission_grade_data)) / 50,  
-                 color = "black", fill = "#ff7f0e", alpha = 0.6) +  # Arancione
+                 color = "black", fill = "#ff7f0e", alpha = 0.6) +  
   geom_density(color = "darkgreen", size = 1) +  # Verde
   xlim(95, 200) +
   labs(subtitle = "Histogram & Density Function",
@@ -380,9 +357,9 @@ hist_density_plot <- ggplot(data, aes(x = Admission_grade)) +
   theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
         plot.margin = margin(10, 10, 10, 10)) 
 
-# Boxplot accanto all'istogramma
+# Boxplot 
 box_plot <- ggplot(data, aes(x = "", y = Admission_grade)) +
-  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +  # Arancione chiaro
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +  
   labs(subtitle = "Boxplot", y = "Grade") +
   theme_minimal() +
   stat_boxplot(geom = "errorbar", width = 0.15) +

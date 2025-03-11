@@ -1,5 +1,5 @@
 ```{r}
-# Caricamento delle librerie necessarie
+# Librerie
 library(ggplot2)
 library(reshape2)
 library(ggcorrplot)
@@ -23,17 +23,15 @@ numeric_data <- data[, numeric_features]
 
 # Calcolo della matrice di correlazione
 cor_matrix <- cor(numeric_data, use = "complete.obs")
-
-# Convertiamo la matrice di correlazione in un formato lungo per ggplot2
 melted_cor <- melt(cor_matrix)
 
-# Creazione del grafico della matrice di correlazione con etichette numeriche
+# Creazione del grafico
 cor_plot <- ggplot(melted_cor, aes(x = Var1, y = Var2, fill = value)) +
-  geom_tile(color = "white") +  # Heatmap con bordi bianchi
+  geom_tile(color = "white") +
   scale_fill_gradient2(low = "#FF6A6A", high = "#6495ED", mid = "white",
                        midpoint = 0, limit = c(-1,1), space = "Lab",
                        name = "Correlazione") +
-  geom_text(aes(label = sprintf("%.2f", value)), color = "black", size = 3) +  # Etichette numeriche con 2 decimali
+  geom_text(aes(label = sprintf("%.2f", value)), color = "black", size = 3) + 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
         axis.title.x = element_blank(),
@@ -43,13 +41,11 @@ cor_plot <- ggplot(melted_cor, aes(x = Var1, y = Var2, fill = value)) +
 
 # Salvataggio del grafico in PDF
 ggsave("grafici/correlation_matrix.pdf", plot = cor_plot, width = 14, height = 10)
-
-# Visualizzazione del grafico (opzionale)
 print(cor_plot)
 
 ```
 ```{r}
-# Caricamento delle librerie necessarie
+# Librerie
 library(ggplot2)
 library(rlang)
 library(here)
@@ -61,26 +57,26 @@ data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.na
 filtered_data <- data[data$`Curricular_units_1st_sem_(grade)` != 0 & data$`Curricular_units_2nd_sem_(grade)` != 0, ]
 
 p1 <- ggplot(filtered_data, aes(x = `Curricular_units_1st_sem_(grade)`, y = `Curricular_units_2nd_sem_(grade)`)) +
-  geom_point(color = "blue", alpha = 0.6) +  # Punti trasparenti per migliore visibilità
+  geom_point(color = "blue", alpha = 0.6) + 
   theme_minimal() +
   labs(title = "Scatterplot: Curricular Units Grade 1st Sem. VS 2nd Sem.",
        x = "1st Sem. Grade",
        y = "2nd Sem. Grade") +
-  theme(plot.title = element_text(hjust = 0.5))  # Centrare il titolo
+  theme(plot.title = element_text(hjust = 0.5))  
 
-# Salvataggio del primo scatterplot
+# Salvataggio grafico
 ggsave("grafici/scatter_1st_vs_2nd_grade.pdf", plot = p1, width = 8, height = 6)
 
 # Scatterplot 2: Previous_qualification_(grade) vs Admission_grade
 p2 <- ggplot(data, aes(x = `Previous_qualification_(grade)`, y = `Admission_grade`)) +
-  geom_point(color = "blue", alpha = 0.6) +  # Punti trasparenti per migliore visibilità
+  geom_point(color = "blue", alpha = 0.6) + 
   theme_minimal() +
   labs(title = "Scatterplot: Previous Qualification Grade VS Admission Grade",
        x = "Previous Qualification Grade",
        y = "Admission Grade") +
-  theme(plot.title = element_text(hjust = 0.5))  # Centrare il titolo
+  theme(plot.title = element_text(hjust = 0.5)) 
 
-# Salvataggio del secondo scatterplot
+# Salvataggio grafico
 ggsave("grafici/scatter_prev_qual_vs_admission.pdf", plot = p2, width = 8, height = 6)
 
 ```

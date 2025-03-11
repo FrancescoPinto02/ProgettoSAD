@@ -1,0 +1,213 @@
+
+TEST KRUSKAL WALLIS (VARIABILI NUMERICHE / TARGET)
+```{r}
+# Librerie necessarie
+library(dplyr)
+library(here)
+
+# Caricamento del dataset
+file_path <- here::here("dataset/data_aggregated.csv")
+data <- read.csv(file_path, sep = ",", header = TRUE, check.names = FALSE)
+
+# Definire tutte le variabili numeriche da testare
+numerical_features <- c("Admission_grade", "Previous_qualification_(grade)", 
+                        "Curricular_units_1st_sem_(grade)", "Curricular_units_2nd_sem_(grade)", 
+                        "Age_at_enrollment", "Unemployment_rate", "Inflation_rate", "GDP",
+                        "Curricular_units_1st_sem_(credited)", "Curricular_units_1st_sem_(enrolled)",
+                        "Curricular_units_1st_sem_(evaluations)", "Curricular_units_1st_sem_(approved)",
+                        "Curricular_units_1st_sem_(without_evaluations)", "Curricular_units_2nd_sem_(credited)",
+                        "Curricular_units_2nd_sem_(enrolled)", "Curricular_units_2nd_sem_(evaluations)",
+                        "Curricular_units_2nd_sem_(approved)", "Curricular_units_2nd_sem_(without_evaluations)", 
+                        "Completed_exams_ratio", "Passed_exams_ratio")
+
+# Filtrare i dati prima di eseguire il test
+data_filtered <- data %>%
+  filter(`Curricular_units_1st_sem_(enrolled)` > 0 & `Curricular_units_2nd_sem_(enrolled)` > 0) %>%
+  filter(!(`Curricular_units_1st_sem_(evaluations)` == 0 & `Curricular_units_2nd_sem_(evaluations)` == 0))
+
+# Inizializzare un dataframe per i risultati del test di Kruskal-Wallis
+kruskal_results <- data.frame(Feature = character(), 
+                              P_Value = numeric(), 
+                              Epsilon_Squared = numeric(), 
+                              Significativo = character(), 
+                              stringsAsFactors = FALSE)
+
+# Eseguire il test di Kruskal-Wallis per ciascuna variabile numerica rispetto alla variabile Target
+for (feature in numerical_features) {
+  
+  if (!(feature %in% colnames(data_filtered))) next
+  if (!is.numeric(data_filtered[[feature]])) next
+  if (sum(!is.na(data_filtered[[feature]])) < 3) next
+  
+  kruskal_test <- kruskal.test(data_filtered[[feature]] ~ data_filtered$Target, data = data_filtered)
+  p_value <- kruskal_test$p.value
+  
+  n <- nrow(data_filtered)
+  H <- kruskal_test$statistic
+  epsilon_squared <- H / (n - 1)
+  
+  significance <- ifelse(p_value < 0.05, "SI", "NO")
+  
+  kruskal_results <- rbind(kruskal_results, 
+                           data.frame(Feature = feature, 
+                                      P_Value = p_value, 
+                                      Epsilon_Squared = epsilon_squared, 
+                                      Significativo = significance, 
+                                      stringsAsFactors = FALSE))
+}
+
+# Ordinare i risultati e salvarli
+kruskal_results <- kruskal_results %>% arrange(P_Value)
+write.csv(kruskal_results, here("RisultatiTestStatistici/kruskal_wallis_results.csv"), row.names = FALSE)
+print("Risultati del test di Kruskal-Wallis salvati in 'kruskal_wallis_results.csv'.")
+
+# Test Post-Hoc di Dunn 
+# Selezionare solo le feature significative
+significant_features <- kruskal_results %>% filter(Significativo == "SI") %>% pull(Feature)
+
+# Inizializzare dataframe per risultati post-hoc
+dunn_results_df <- data.frame(Feature = character(), 
+                              Comparison = character(), 
+                              P_Value = numeric(), 
+                              P_Value_Adj = numeric(), 
+                              Significativo = character(), 
+                              stringsAsFactors = FALSE)
+
+# Funzione per calcolare il test di Dunn
+dunn_test_manual <- function(feature_data, target_data) {
+  groups <- unique(target_data)
+  comparisons <- combn(groups, 2, simplify = FALSE)
+  p_values <- numeric()
+  names_list <- character()
+  
+  for (comp in comparisons) {
+    g1 <- feature_data[target_data == comp[1]]
+    g2 <- feature_data[target_data == comp[2]]
+    
+    if (length(g1) < 2 | length(g2) < 2) next
+    
+    test_res <- wilcox.test(g1, g2)
+    p_values <- c(p_values, test_res$p.value)
+    names_list <- c(names_list, paste(comp[1], "vs", comp[2]))
+  }
+  
+  if (length(p_values) > 0) {
+    p_values_adj <- p.adjust(p_values, method = "BH")
+    return(data.frame(Comparison = names_list, P_Value = p_values, P_Value_Adj = p_values_adj))
+  } else {
+    return(NULL)
+  }
+}
+
+# Eseguire il test post-hoc solo sulle feature significative
+for (feature in significant_features) {
+  feature_data <- data_filtered[[feature]]
+  target_data <- data_filtered$Target
+  
+  dunn_res <- dunn_test_manual(feature_data, target_data)
+  
+  if (!is.null(dunn_res)) {
+    dunn_res$Feature <- feature
+    dunn_res$Significativo <- ifelse(dunn_res$P_Value_Adj < 0.05, "SI", "NO")
+    dunn_results_df <- rbind(dunn_results_df, dunn_res)
+  }
+}
+
+# Ordinare i risultati post-hoc e salvarli
+dunn_results_df <- dunn_results_df %>% arrange(Feature, P_Value_Adj)
+write.csv(dunn_results_df, here("RisultatiTestStatistici/kruskal_wallis_posthoc_dunn_results.csv"), row.names = FALSE)
+print("Risultati del test post-hoc di Dunn salvati in 'kruskal_wallis_posthoc_dunn_results.csv'.")
+
+
+```
+
+
+
+TEST CHI QUADRO (VARIABILI CATEGORICHE / TARGET)
+```{r}
+# Librerie necessarie
+library(dplyr)
+library(here)
+
+# Funzione per calcolare il Cramer's V
+cramers_v <- function(contingency_table) {
+  chi2 <- chisq.test(contingency_table)$statistic  # Statistica chi-quadro
+  n <- sum(contingency_table)  # Totale osservazioni
+  k <- min(dim(contingency_table))  # Numero minimo tra righe e colonne
+  V <- sqrt(chi2 / (n * (k - 1)))  # Formula di Cramer's V
+  return(as.numeric(V))  # Restituisce il valore di V
+}
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/data_aggregated.csv"), sep = ",", header = TRUE, check.names = TRUE)
+colnames(data)[colnames(data) == "Daytime.evening_attendance."] <- "Attendance"
+
+# Lista feature categoriche (escludendo il Target)
+categorical_features <- c("Gender", "Marital_status", "Nationality", "Debtor", "Scholarship_holder", "Tuition_fees_up_to_date", 
+                          "Mothers_qualification", "Fathers_qualification", "Mothers_occupation", "Fathers_occupation", 
+                          "Displaced", "Attendance", "Educational_special_needs", "International", "Application_mode", 
+                          "Application_order", "Previous_qualification", "Course")
+
+# Inizializzare tabella per salvare i risultati globali del Chi-quadrato e Cramer's V
+chi_square_results <- data.frame(Feature = character(), p_value = numeric(), Cramers_V = numeric(), Significativo = character(), stringsAsFactors = FALSE)
+
+# Inizializzare tabella per i residui
+residuals_results <- data.frame(Feature = character(), 
+                                Category = character(), 
+                                Target_Level = character(), 
+                                Residual = numeric(), 
+                                stringsAsFactors = FALSE)
+
+# Esecuzione del test del Chi-quadrato e calcolo residui
+for (feature in categorical_features) {
+  # Creazione tabella di contingenza
+  contingency_table <- table(data[[feature]], data$Target)
+  
+  if(min(contingency_table) < 5){
+    warning(paste("Attenzione: La variabile", feature, "ha celle con meno di 5 osservazioni. Il test potrebbe non essere affidabile."))
+  }
+  
+  # Esecuzione test Chi-quadro
+  chi_test <- chisq.test(contingency_table)
+  p_value <- chi_test$p.value
+  
+  # Calcolo del Cramer's V
+  V <- cramers_v(contingency_table)
+  
+  # Determinare se il risultato è significativo
+  significance <- ifelse(p_value < 0.05, "SI", "NO")
+  
+  # Aggiunta dei risultati alla tabella globale
+  chi_square_results <- rbind(chi_square_results, 
+                              data.frame(Feature = feature, p_value = p_value, Cramers_V = V, Significativo = significance, stringsAsFactors = FALSE))
+  
+  # Se il test è significativo, analizziamo i residui standardizzati
+  if (significance == "SI") {
+    adj_residuals <- chi_test$residuals
+    
+    # Convertiamo in formato tabellare
+    for (row_name in rownames(adj_residuals)) {
+      for (col_name in colnames(adj_residuals)) {
+        residuals_results <- rbind(residuals_results, 
+                                   data.frame(Feature = feature, 
+                                              Category = row_name, 
+                                              Target_Level = col_name, 
+                                              Residual = adj_residuals[row_name, col_name], 
+                                              stringsAsFactors = FALSE))
+      }
+    }
+  }
+}
+
+# Ordinare i risultati in base ai residui in valore assoluto per evidenziare quelli più grandi
+residuals_results <- residuals_results %>% arrange(desc(abs(Residual)))
+
+# Salvare i risultati globali
+write.csv(chi_square_results, here("RisultatiTestStatistici/chi_square_results.csv"), row.names = FALSE)
+write.csv(residuals_results, here("RisultatiTestStatistici/chi_square_residuals.csv"), row.names = FALSE)
+
+print("Risultati del test del Chi-quadro e Cramer's V salvati in 'chi_square_results.csv'.")
+print("Analisi dei residui standardizzati salvata in 'chi_square_residuals.csv'.")
+
+```
+

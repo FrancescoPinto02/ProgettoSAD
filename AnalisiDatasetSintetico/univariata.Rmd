@@ -1,0 +1,723 @@
+```{r}
+################ DEBTOR ##################
+
+library(ggplot2)
+library(here)
+library(dplyr)
+library(patchwork)
+
+# Caricamento Dataset
+data_new <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = TRUE)
+data_old <- read.csv(here("dataset/synthetic_dataset_old.csv"), sep = ",", header = TRUE, check.names = TRUE)
+
+# Funzione per creare il grafico a torta
+create_piechart <- function(data, title) {
+  data$Debtor <- factor(data$Debtor, levels = c(0, 1), labels = c("0-NO", "1-YES"))
+  freq_debtor <- table(data$Debtor)
+  debtor_data <- data.frame(Debtor = names(freq_debtor), 
+                            Count = as.numeric(freq_debtor))
+  debtor_data$Perc <- debtor_data$Count / sum(debtor_data$Count) * 100
+  debtor_data$Label <- paste0(round(debtor_data$Perc, 1), "%")
+  
+  ggplot(debtor_data, aes(x = "", y = Count, fill = Debtor)) +
+    geom_bar(width = 1, stat = "identity") +
+    coord_polar("y") +
+    theme_void() +
+    labs(subtitle = title, fill = "Legenda") +
+    geom_text(aes(label = Label), position = position_stack(vjust = 0.5)) +  
+    scale_fill_manual(values = c("#E69F00", "#56B4E9")) +  
+    theme(plot.subtitle = element_text(hjust = 0.5, face="bold", vjust = 2))
+}
+
+# Creazione dei grafici
+p1 <- create_piechart(data_new, "Prompt With Observations")
+p2 <- create_piechart(data_old, "Prompt Without Observations")
+
+# Combinazione dei due grafici
+final_plot <- (p2 | p1) + 
+  plot_annotation(title = "Piechart: Debtor") &
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico
+ggsave("Grafici/Comparison_PieChart_Debtor.pdf", plot = final_plot, width = 12, height = 6)
+
+```
+```{r}
+########### MOTHERS QUALIFICATION ##############
+library(ggplot2)
+library(here)
+library(dplyr)
+library(patchwork)
+
+# Caricamento Dataset
+data_new <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = TRUE)
+data_old <- read.csv(here("dataset/synthetic_dataset_old.csv"), sep = ",", header = TRUE, check.names = TRUE)
+
+colnames(data_old)[colnames(data_old) == "Mothers_Qualification"] <- "Mothers_qualification"
+
+# Funzione per calcolare la frequenza relativa
+calculate_percentage <- function(data) {
+  freq_qualification <- table(data$Mothers_qualification)
+  qualification_data <- data.frame(Mothers_qualification = names(freq_qualification), 
+                                   Count = as.numeric(freq_qualification))
+  qualification_data$Perc <- qualification_data$Count / sum(qualification_data$Count) * 100
+  return(qualification_data)
+}
+
+# Calcolo delle percentuali per entrambi i dataset
+qual_data_new <- calculate_percentage(data_new)
+qual_data_old <- calculate_percentage(data_old)
+
+# Determinare il massimo valore di percentuale
+max_perc <- max(c(qual_data_new$Perc, qual_data_old$Perc))
+
+# Funzione per creare il barplot
+create_barplot <- function(data, title, max_perc) {
+  data$Mothers_qualification <- factor(data$Mothers_qualification, 
+                                       levels = sort(as.numeric(unique(data$Mothers_qualification))))
+  
+  ggplot(data, aes(x = Mothers_qualification, y = Perc, fill = Mothers_qualification)) +
+    geom_bar(stat = "identity", width = 0.7) +
+    labs(subtitle = title, x = "Mother's Qualification", y = "Frequenza Relativa (%)") + 
+    theme_minimal() +
+    geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+              position = position_dodge(width = 0.9), 
+              vjust = -0.5, 
+              size = 3) + 
+    theme(plot.subtitle = element_text(hjust = 0.5, face="bold"), 
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = "none") +
+    ylim(0, max_perc) 
+}
+
+# Creazione dei grafici
+p1 <- create_barplot(qual_data_new, "Prompt With Observations", max_perc)
+p2 <- create_barplot(qual_data_old, "Prompt Without Observations", max_perc)
+
+# Combinazione dei due grafici
+final_plot <- (p2 | p1) + 
+  plot_annotation(title = "Barplot: Mother's Qualification") &
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico
+ggsave("Grafici/Comparison_Barplot_Mothers_Qualification.pdf", plot = final_plot, width = 12, height = 6)
+
+
+```
+```{r}
+#############  AGE AT ENROLLMENT ################
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+library(here)
+
+data <- read.csv(here("dataset/synthetic_dataset_complete.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+age_data <- na.omit(data$Age_at_enrollment)
+
+# Istogramma
+hist_plot <- ggplot(data, aes(x = Age_at_enrollment)) +
+  geom_histogram(aes(y = (..count..) / length(age_data) * 100), 
+                 binwidth = 1, color = "black", fill = "skyblue") +
+  labs(subtitle = "Histogram",
+       x = "Age",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) + 
+  coord_cartesian(ylim = c(0, max(table(age_data) / length(age_data) * 100) * 1.2))  
+
+# Boxplot
+box_plot <- ggplot(data, aes(x = "", y = Age_at_enrollment)) +
+  geom_boxplot(fill = "lightblue", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot", y = "Age") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))  
+
+# Combinazione dei due grafici 
+combined_plot <- (hist_plot | box_plot) + 
+  plot_annotation(title = "Age At Enrollment") & 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Age_At_Enrollment.pdf", plot = combined_plot, width = 16, height = 6)
+
+# Calcolo degli indici di sintesi
+media <- mean(age_data)  
+mediana <- median(age_data)  
+moda <- as.numeric(names(sort(table(age_data), decreasing = TRUE)[1]))  
+dev_standard <- sd(age_data)  
+varianza <- var(age_data)  
+skewness_value <- skewness(age_data)  
+kurtosis_value <- kurtosis(age_data)  
+range_value <- max(age_data) - min(age_data)  
+quartili <- quantile(age_data, probs = c(0.25, 0.50, 0.75))
+iqr_value <- IQR(age_data)  
+cv <- (dev_standard / media) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi di Age_at_enrollment:\n")
+cat("Media:", round(media, 2), "\n")
+cat("Mediana:", round(mediana, 2), "\n")
+cat("Moda:", moda, "\n")
+cat("Deviazione Standard:", round(dev_standard, 2), "\n")
+cat("Varianza:", round(varianza, 2), "\n")
+cat("Skewness (Asimmetria):", round(skewness_value, 2), "\n")
+cat("Curtosi:", round(kurtosis_value, 2), "\n")
+cat("Range:", range_value, "\n")
+cat("1° Quartile (Q1):", quartili[1], "\n")
+cat("2° Quartile (Mediana - Q2):", quartili[2], "\n")
+cat("3° Quartile (Q3):", quartili[3], "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_value, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv, 2), "%\n")
+
+```
+
+
+```{r}
+############## ADMISSION GRADE ######################
+
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = TRUE)
+
+admission_grade_data <- na.omit(data$Admission_grade)
+
+# Istogramma con densità
+hist_density_plot <- ggplot(data, aes(x = Admission_grade)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = diff(range(admission_grade_data)) / 50,  
+                 color = "black", fill = "#ff7f0e", alpha = 0.6) + 
+  geom_density(color = "darkgreen", size = 1) +  # Verde
+  xlim(95, 200) +
+  labs(subtitle = "Histogram & Density Function",
+       x = "Grade",
+       y = "Density") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) 
+
+# Boxplot
+box_plot <- ggplot(data, aes(x = "", y = Admission_grade)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) + 
+  labs(subtitle = "Boxplot", y = "Grade") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Combinazione dei grafici
+combined_plot <- (hist_density_plot | box_plot) + 
+  plot_annotation(title = "Admission Grade") & 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Admission_Grade.pdf", plot = combined_plot, width = 16, height = 6)
+
+
+# Calcolo degli indici di sintesi
+media <- mean(admission_grade_data)  
+mediana <- median(admission_grade_data)  
+dev_standard <- sd(admission_grade_data)  
+varianza <- var(admission_grade_data)  
+skewness_value <- skewness(admission_grade_data)  
+kurtosis_value <- kurtosis(admission_grade_data)  
+range_value <- max(admission_grade_data) - min(admission_grade_data)  
+quartili <- quantile(admission_grade_data, probs = c(0.25, 0.50, 0.75))
+iqr_value <- IQR(admission_grade_data)  
+cv <- (dev_standard / media) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi di Admission Grade:\n")
+cat("Media:", round(media, 2), "\n")
+cat("Mediana:", round(mediana, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard, 2), "\n")
+cat("Varianza:", round(varianza, 2), "\n")
+cat("Skewness:", round(skewness_value, 2), "\n")
+cat("Curtosi:", round(kurtosis_value, 2), "\n")
+cat("Range:", range_value, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_value, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv, 2), "%\n")
+```
+
+```{r}
+############### PREVIOUS QUALIFICATION GRADE ###############
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = TRUE)
+colnames(data)[colnames(data) == "Previous_qualification_.grade."] <- "Previous_qualification_grade"
+
+prev_qual_grade_data <- na.omit(data$Previous_qualification_grade)
+
+# Istogramma con densità
+hist_density_plot <- ggplot(data, aes(x = Previous_qualification_grade)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = diff(range(prev_qual_grade_data)) / 50,  
+                 color = "black", fill = "#1f77b4", alpha = 0.6) +  # Blu
+  geom_density(color = "#d62728", size = 1) +  # Rosso
+  xlim(95, 200) +
+  labs(subtitle = "Histogram & Density Function",
+       x = "Grade",
+       y = "Density") +
+  theme_minimal()+
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) 
+
+# Boxplot
+box_plot <- ggplot(data, aes(x = "", y = Previous_qualification_grade)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +  # Azzurro
+  labs(subtitle = "Boxplot", y = "Grade") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Combinazione dei grafici
+combined_plot <- (hist_density_plot | box_plot) + 
+  plot_annotation(title = "Previous Qualification Grade") & 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Previous_Qualification_Grade.pdf", plot = combined_plot, width = 16, height = 6)
+
+
+# Calcolo degli indici di sintesi
+media <- mean(prev_qual_grade_data)  
+mediana <- median(prev_qual_grade_data)  
+dev_standard <- sd(prev_qual_grade_data)  
+varianza <- var(prev_qual_grade_data)  
+skewness_value <- skewness(prev_qual_grade_data)  
+kurtosis_value <- kurtosis(prev_qual_grade_data)  
+range_value <- max(prev_qual_grade_data) - min(prev_qual_grade_data)  
+quartili <- quantile(prev_qual_grade_data, probs = c(0.25, 0.50, 0.75))
+iqr_value <- IQR(prev_qual_grade_data)  
+cv <- (dev_standard / media) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi di Previous Qualification Grade:\n")
+cat("Media:", round(media, 2), "\n")
+cat("Mediana:", round(mediana, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard, 2), "\n")
+cat("Varianza:", round(varianza, 2), "\n")
+cat("Skewness:", round(skewness_value, 2), "\n")
+cat("Curtosi:", round(kurtosis_value, 2), "\n")
+cat("Range:", range_value, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_value, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv, 2), "%\n")
+```
+
+
+```{r}
+################ CURRICULAR UNITS GRADE #####################
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+
+# Rimozione di eventuali valori mancanti
+grades_1st_sem <- na.omit(data$`Curricular_units_1st_sem_(grade)`)
+grades_2nd_sem <- na.omit(data$`Curricular_units_2nd_sem_(grade)`)
+
+min_x <- 0
+max_x <- 20
+binwidth_value <- 1 
+breaks_seq <- seq(min_x, max_x, by = binwidth_value)
+
+max_y_hist <- max(max(density(grades_1st_sem)$y), 
+                  max(density(grades_2nd_sem)$y)) * 1.2
+
+### ISTOGRAMMI CON FUNZIONE DI DENSITÀ
+# Istogramma con densità per il 1° semestre
+hist_density_1st <- ggplot(data, aes(x = `Curricular_units_1st_sem_(grade)`)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = binwidth_value, 
+                 color = "black", fill = "#1f77b4", alpha = 0.6, 
+                 boundary = min_x) +  
+  geom_density(color = "red", size = 1) +  
+  scale_x_continuous(breaks = seq(min_x, max_x, by = 5), limits = c(min_x, max_x)) +
+  scale_y_continuous(limits = c(0, max_y_hist)) +
+  labs(subtitle = "Histogram & Density: 1st Semester",
+       x = "Grade",
+       y = "Density") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Istogramma con densità per il 2° semestre
+hist_density_2nd <- ggplot(data, aes(x = `Curricular_units_2nd_sem_(grade)`)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = binwidth_value, 
+                 color = "black", fill = "#ff7f0e", alpha = 0.6, 
+                 boundary = min_x) +  
+  geom_density(color = "darkgreen", size = 1) +  
+  scale_x_continuous(breaks = seq(min_x, max_x, by = 5), limits = c(min_x, max_x)) +
+  scale_y_continuous(limits = c(0, max_y_hist)) +
+  labs(subtitle = "Histogram & Density: 2nd Semester",
+       x = "Grade",
+       y = "Density") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+############  BOXPLOT ##############
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `Curricular_units_1st_sem_(grade)`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Grade") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  scale_y_continuous(breaks = seq(min_x, max_x, by = 5), limits = c(min_x, max_x)) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `Curricular_units_2nd_sem_(grade)`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Grade") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  scale_y_continuous(breaks = seq(min_x, max_x, by = 5), limits = c(min_x, max_x)) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+### COMBINAZIONE DEI 4 GRAFICI ###
+combined_plot <- (hist_density_1st | box_1st) /
+                 (hist_density_2nd | box_2nd) +
+  plot_annotation(title = "Curricular Units Grade") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Curricular_Units_Grade.pdf", 
+       plot = combined_plot, width = 16, height = 10)
+
+### CALCOLO INDICI STATISTICI ###
+# 1° semestre
+media_1st <- mean(grades_1st_sem)  
+mediana_1st <- median(grades_1st_sem)  
+dev_standard_1st <- sd(grades_1st_sem)  
+varianza_1st <- var(grades_1st_sem)  
+skewness_1st <- skewness(grades_1st_sem)  
+kurtosis_1st <- kurtosis(grades_1st_sem)  
+range_1st <- max(grades_1st_sem) - min(grades_1st_sem)  
+quartili_1st <- quantile(grades_1st_sem, probs = c(0.25, 0.50, 0.75))
+iqr_1st <- IQR(grades_1st_sem)  
+cv_1st <- (dev_standard_1st / media_1st) * 100  
+
+# 2° semestre
+media_2nd <- mean(grades_2nd_sem)  
+mediana_2nd <- median(grades_2nd_sem)  
+dev_standard_2nd <- sd(grades_2nd_sem)  
+varianza_2nd <- var(grades_2nd_sem)  
+skewness_2nd <- skewness(grades_2nd_sem)  
+kurtosis_2nd <- kurtosis(grades_2nd_sem)  
+range_2nd <- max(grades_2nd_sem) - min(grades_2nd_sem)  
+quartili_2nd <- quantile(grades_2nd_sem, probs = c(0.25, 0.50, 0.75))
+iqr_2nd <- IQR(grades_2nd_sem)  
+cv_2nd <- (dev_standard_2nd / media_2nd) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi - 1° Semestre:\n")
+cat("Media:", round(media_1st, 2), "\n")
+cat("Mediana:", round(mediana_1st, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_1st, 2), "\n")
+cat("Varianza:", round(varianza_1st, 2), "\n")
+cat("Skewness:", round(skewness_1st, 2), "\n")
+cat("Curtosi:", round(kurtosis_1st, 2), "\n")
+cat("Range:", range_1st, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_1st, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_1st, 2), "%\n\n")
+
+cat("Indici di sintesi - 2° Semestre:\n")
+cat("Media:", round(media_2nd, 2), "\n")
+cat("Mediana:", round(mediana_2nd, 2), "\n")
+cat("Deviazione Standard:", round(dev_standard_2nd, 2), "\n")
+cat("Varianza:", round(varianza_2nd, 2), "\n")
+cat("Skewness:", round(skewness_2nd, 2), "\n")
+cat("Curtosi:", round(kurtosis_2nd, 2), "\n")
+cat("Range:", range_2nd, "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_2nd, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv_2nd, 2), "%\n")
+```
+
+```{r}
+################# CU ENROLLED #################
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+
+
+# Rimozione di eventuali valori mancanti
+units_1st_sem <- na.omit(data$`Curricular_units_1st_sem_(enrolled)`)
+units_2nd_sem <- na.omit(data$`Curricular_units_2nd_sem_(enrolled)`)
+
+min_x <- min(c(units_1st_sem, units_2nd_sem))
+max_x <- max(c(units_1st_sem, units_2nd_sem))
+max_y_hist <- max(table(units_1st_sem) / length(units_1st_sem) * 100,
+                  table(units_2nd_sem) / length(units_2nd_sem) * 100) * 1.2
+
+###  ISTOGRAMMI ###
+# Istogramma per il 1° semestre
+hist_1st <- ggplot(data, aes(x = `Curricular_units_1st_sem_(enrolled)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_1st_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#1f77b4") +  # Blu
+  labs(subtitle = "Histogram: 1st Semester",
+       x = "Units Enrolled",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist), xlim = c(min_x, max_x))
+
+# Istogramma per il 2° semestre
+hist_2nd <- ggplot(data, aes(x = `Curricular_units_2nd_sem_(enrolled)`)) +
+  geom_histogram(aes(y = (..count..) / length(units_2nd_sem) * 100), 
+                 binwidth = 1, color = "black", fill = "#ff7f0e") +  # Arancione
+  labs(subtitle = "Histogram: 2nd Semester",
+       x = "Units Enrolled",
+       y = "Frequenza Relativa (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10)) +
+  coord_cartesian(ylim = c(0, max_y_hist), xlim = c(min_x, max_x))
+
+###  BOXPLOT ###
+# Definizione degli stessi limiti Y per i boxplot
+max_y_box <- max(max(units_1st_sem), max(units_2nd_sem)) * 1.1
+
+# Boxplot per il 1° semestre
+box_1st <- ggplot(data, aes(x = "", y = `Curricular_units_1st_sem_(enrolled)`)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +
+  labs(subtitle = "Boxplot: 1st Semester", y = "Units Enrolled") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+# Boxplot per il 2° semestre
+box_2nd <- ggplot(data, aes(x = "", y = `Curricular_units_2nd_sem_(enrolled)`)) +
+  geom_boxplot(fill = "#ffbb78", color = "darkorange", width = 0.3) +
+  labs(subtitle = "Boxplot: 2nd Semester", y = "Units Enrolled") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2)) +
+  coord_cartesian(ylim = c(0, max_y_box))
+
+###  COMBINAZIONE DEI 4 GRAFICI ###
+combined_plot <- (hist_1st | box_1st) /
+                 (hist_2nd | box_2nd) +
+  plot_annotation(title = "Curricular Units Enrolled") &  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Curricular_Units_Enrolled.pdf", 
+       plot = combined_plot, width = 16, height = 10)
+```
+
+
+```{r}
+#################### INFLATION RATE #######################
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+library(here)
+
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+
+# Rimozione di eventuali valori mancanti
+inflation_data <- na.omit(data$Inflation_rate)
+
+# Istogramma con densità
+hist_density_plot <- ggplot(data, aes(x = Inflation_rate)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = diff(range(inflation_data)) / 30,  
+                 color = "black", fill = "#d62728", alpha = 0.6) +  # Rosso
+  geom_density(color = "#f1c40f", size = 1) +  # Giallo
+  xlim(-1.5, 4.5) +
+  labs(subtitle = "Histogram & Density Function",
+       x = "Inflation Rate (%)",
+       y = "Density") +
+  theme_minimal()+
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Boxplot
+box_plot <- ggplot(data, aes(x = "", y = Inflation_rate)) +
+  geom_boxplot(fill = "#ff9896", color = "darkred", width = 0.3) +  # Rosso chiaro
+  labs(subtitle = "Boxplot", y = "Inflation Rate (%)") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Combinazione dei grafici
+combined_plot <- (hist_density_plot | box_plot) + 
+  plot_annotation(title = "Inflation Rate Analysis") & 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Inflation.pdf", plot = combined_plot, width = 16, height = 6)
+
+# Calcolo degli indici di sintesi
+media <- mean(inflation_data)  
+mediana <- median(inflation_data)  
+moda <- as.numeric(names(sort(table(inflation_data), decreasing = TRUE)[1]))  
+dev_standard <- sd(inflation_data)  
+varianza <- var(inflation_data)  
+skewness_value <- skewness(inflation_data)  
+kurtosis_value <- kurtosis(inflation_data)  
+range_value <- max(inflation_data) - min(inflation_data)  
+quartili <- quantile(inflation_data, probs = c(0.25, 0.50, 0.75))
+iqr_value <- IQR(inflation_data)  
+cv <- (dev_standard / media) * 100  
+
+# Stampa dei risultati
+cat("Indici di sintesi di Inflation Rate:\n")
+cat("Media:", round(media, 2), "\n")
+cat("Mediana:", round(mediana, 2), "\n")
+cat("Moda:", moda, "\n")
+cat("Deviazione Standard:", round(dev_standard, 2), "\n")
+cat("Varianza:", round(varianza, 2), "\n")
+cat("Skewness (Asimmetria):", round(skewness_value, 2), "\n")
+cat("Curtosi:", round(kurtosis_value, 2), "\n")
+cat("Range:", range_value, "\n")
+cat("1° Quartile (Q1):", quartili[1], "\n")
+cat("2° Quartile (Mediana - Q2):", quartili[2], "\n")
+cat("3° Quartile (Q3):", quartili[3], "\n")
+cat("Intervallo Interquartile (IQR):", round(iqr_value, 2), "\n")
+cat("Coefficiente di Variazione (CV %):", round(cv, 2), "%\n")
+```
+
+```{r}
+###################### UNEMPLOYMENT RATE #######################
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+
+# Rimozione di eventuali valori mancanti
+unemployment_data <- na.omit(data$Unemployment_rate)
+
+# Istogramma con densità
+hist_density_plot <- ggplot(data, aes(x = Unemployment_rate)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = diff(range(unemployment_data)) / 30,  
+                 color = "black", fill = "#2ca02c", alpha = 0.6) +  # Verde
+  geom_density(color = "#9467bd", size = 1) +  # Viola
+  xlim(0, 15) +
+  labs(subtitle = "Histogram & Density Function",
+       x = "Unemployment Rate (%)",
+       y = "Density") +
+  theme_minimal()+
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Boxplot
+box_plot <- ggplot(data, aes(x = "", y = Unemployment_rate)) +
+  geom_boxplot(fill = "#98df8a", color = "darkgreen", width = 0.3) +  # Verde chiaro
+  labs(subtitle = "Boxplot", y = "Unemployment Rate (%)") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Combinazione dei grafici
+combined_plot <- (hist_density_plot | box_plot) + 
+  plot_annotation(title = "Unemployment Rate Analysis") & 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_Unemployment.pdf", plot = combined_plot, width = 16, height = 6)
+```
+
+```{r}
+########################### GDP ########################
+
+# Librerie necessarie
+library(ggplot2)
+library(patchwork)
+library(moments)
+
+# Rimozione di eventuali valori mancanti
+gdp_data <- na.omit(data$GDP)
+
+# Istogramma con densità
+hist_density_plot <- ggplot(data, aes(x = GDP)) +
+  geom_histogram(aes(y = ..density..), 
+                 binwidth = diff(range(gdp_data)) / 30,  
+                 color = "black", fill = "#1f77b4", alpha = 0.6) +  # Blu
+  geom_density(color = "#ff7f0e", size = 1) +  # Arancione
+  xlim(-3, 7) +
+  labs(subtitle = "Histogram & Density Function",
+       x = "GDP Change (%)",
+       y = "Density") +
+  theme_minimal()+
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Boxplot
+box_plot <- ggplot(data, aes(x = "", y = GDP)) +
+  geom_boxplot(fill = "#aec7e8", color = "darkblue", width = 0.3) +  # Azzurro
+  labs(subtitle = "Boxplot", y = "GDP Change (%)") +
+  theme_minimal() +
+  stat_boxplot(geom = "errorbar", width = 0.15) +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),   
+        axis.ticks.x = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Combinazione dei grafici
+combined_plot <- (hist_density_plot | box_plot) + 
+  plot_annotation(title = "GDP") & 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Combined_Histogram_Boxplot_GDP.pdf", plot = combined_plot, width = 16, height = 6)
+```
+

@@ -1,5 +1,7 @@
 "Feature","P_Value","Epsilon_Squared","Significativo"
 "Curricular_units_2nd_sem_(approved)",0,0.429671444965879,"SI"
+"Completed_exams_ratio",0,0.52429137361018,"SI"
+"Passed_exams_ratio",0,0.481514371005562,"SI"
 "Curricular_units_1st_sem_(approved)",3.07026504585713e-308,0.347180409291561,"SI"
 "Curricular_units_2nd_sem_(grade)",4.35792210237019e-261,0.293945924937343,"SI"
 "Curricular_units_1st_sem_(grade)",1.23266789817441e-198,0.223438424893094,"SI"

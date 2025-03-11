@@ -1,0 +1,231 @@
+```{r}
+################# GROUPED BARPLOT: MOTHERS_QUALIFICATION vs TARGET ####################
+
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(here)
+
+# Caricamento Dataset
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Convertire la variabile Target in fattore ordinato
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Definizione delle nuove etichette per Mothers_qualification
+qualification_labels <- c("1-Higher Education", 
+                          "2-Secondary Education", 
+                          "3-Basic Education (3º ciclo)", 
+                          "4-Basic Education (2º ciclo)", 
+                          "5-Basic Education (1º ciclo)", 
+                          "6-No Qualification")
+
+# Convertire Mothers_qualification in un fattore con le nuove etichette
+data$Mothers_qualification <- factor(data$Mothers_qualification, 
+                                     levels = sort(unique(data$Mothers_qualification)), 
+                                     labels = qualification_labels)
+
+# Calcolo delle frequenze relative per ciascun gruppo di Mothers_qualification
+freq_mother <- data %>%
+  group_by(Mothers_qualification, Target) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  group_by(Mothers_qualification) %>%
+  mutate(Perc = Count / sum(Count) * 100)
+
+color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
+
+# grouped barplot
+p1 <- ggplot(freq_mother, aes(x = Mothers_qualification, y = Perc, fill = Target)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = color_palette) +  
+  labs(title = "Grouped Barplot: Mother's Qualification/Target", 
+       x = "Mother's Qualification", 
+       y = "Frequenza Relativa (%)", 
+       fill = "Target") +
+  theme_minimal() +
+  geom_text(aes(label = paste0(round(Perc, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, 
+            size = 4) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Grouped_Barplot_Mothers_Qualification_Target.pdf", plot = p1, width = 10, height = 6)
+```
+
+
+```{r}
+################### AGE AT ENROLLMENT #########################
+# Caricamento Dataset
+library(here)
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Creazione del boxplot
+box_plot <- ggplot(data, aes(x = Target, y = Age_at_enrollment, fill = Target)) +
+  geom_boxplot(outlier.shape = 16, outlier.size = 2, notch = FALSE, width = 0.5, color = "black") +
+  stat_boxplot(geom = "errorbar", width = 0.15, color = "black") +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Boxplot", 
+       x = "Target", 
+       y = "Age at Enrollment", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Creazione Istogramma
+hist_plot <- ggplot(data, aes(x = Age_at_enrollment, fill = Target)) +
+  geom_histogram(aes(y = (..count..) / tapply(..count.., ..PANEL.., sum)[..PANEL..] * 100),
+                 binwidth = 1, color = "black", position = "identity", alpha = 0.6) +
+  facet_grid(Target ~ .) +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(subtitle = "Histograms", x = "Age at Enrollment", y = "Relative Frequency (%)") +
+  theme_minimal() +
+  theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2))
+
+# Combinazione dei grafici in un'unica figura 
+combined_plot <- (box_plot / hist_plot) +
+  plot_annotation(title = "Age at Enrollment / Target") &
+  theme(plot.title = element_text(hjust = 0.48, face = "bold", size = 14))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Syn_Biv_Combined_Boxplot_Histograms_Age_at_Enrollment.pdf", plot = combined_plot, width = 16, height = 12)
+```
+
+
+```{r}
+############### ADMISSION GRADE ###################
+
+# Caricamento Dataset
+library(here)
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Librerie
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+
+data$Target <- factor(data$Target, 
+                      levels = c("Graduate", "Enrolled", "Dropout"), 
+                      labels = c("Graduate", "Enrolled", "Dropout"))
+
+# Creazione del violin plot
+violin_box_plot <- ggplot(data, aes(x = Target, y = `Admission_grade`, fill = Target)) +
+  geom_violin(trim = FALSE, alpha = 0.6, color = "black") +
+  geom_boxplot(width = 0.15, color = "black", outlier.shape = 16, outlier.size = 2, alpha = 0.8) +
+  stat_boxplot(geom = "errorbar", width = 0.2, color = "black") +
+  scale_fill_manual(values = c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")) +  
+  labs(title = "Admission Grade / Target", 
+       subtitle = "Violin and Boxplot", 
+       x = "Target", 
+       y = "Admission Grade", 
+       fill = "Target") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
+        plot.margin = margin(10, 10, 10, 10))
+
+# Salvataggio del grafico in PDF
+ggsave("Grafici/Violin_Boxplot_Admission_Grade.pdf", plot = violin_box_plot, width = 16, height = 12)
+```
+
+
+```{r}
+############## CORRELATION MATRIX ######################
+
+# Caricamento delle librerie necessarie
+library(ggplot2)
+library(reshape2)
+library(ggcorrplot)
+library(here)
+
+# Caricamento del dataset
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = FALSE)
+head(data)
+
+# Selezione delle variabili numeriche
+numeric_features <- c("Age_at_enrollment", "Previous_qualification_grade", "Admission_grade",
+                      "Curricular_units_1st_sem_(credited)", "Curricular_units_1st_sem_(enrolled)",
+                      "Curricular_units_1st_sem_(evaluations)", "Curricular_units_1st_sem_(approved)",
+                      "Curricular_units_1st_sem_(grade)", "Curricular_units_1st_sem_(without_evaluations)",
+                      "Curricular_units_2nd_sem_(credited)", "Curricular_units_2nd_sem_(enrolled)",
+                      "Curricular_units_2nd_sem_(evaluations)", "Curricular_units_2nd_sem_(approved)",
+                      "Curricular_units_2nd_sem_(grade)", "Curricular_units_2nd_sem_(without_evaluations)",
+                      "Unemployment_rate", "Inflation_rate", "GDP")
+
+numeric_data <- data[, numeric_features]
+
+# Calcolo della matrice di correlazione
+cor_matrix <- cor(numeric_data, use = "complete.obs")
+melted_cor <- melt(cor_matrix)
+
+# Creazione del grafico della matrice di correlazione
+cor_plot <- ggplot(melted_cor, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") + 
+  scale_fill_gradient2(low = "#FF6A6A", high = "#6495ED", mid = "white",
+                       midpoint = 0, limit = c(-1,1), space = "Lab",
+                       name = "Correlazione") +
+  geom_text(aes(label = sprintf("%.2f", value)), color = "black", size = 3) +  
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(hjust = 0.5, face = "bold")) +
+  labs(title = "Matrice di Correlazione")
+
+# Salvataggio del grafico in PDF
+ggsave("grafici/correlation_matrix.pdf", plot = cor_plot, width = 14, height = 10)
+
+print(cor_plot)
+```
+
+```{r}
+############# SCATTER PLOTS ######################
+
+# Caricamento delle librerie necessarie
+library(ggplot2)
+library(rlang)
+library(here)
+
+# Caricamento del dataset
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = FALSE)
+
+# Scatterplot 1: Curricular_units_1st_sem_(grade) vs Curricular_units_2nd_sem_(grade)
+filtered_data <- data[data$`Curricular_units_1st_sem_(grade)` != 0 & data$`Curricular_units_2nd_sem_(grade)` != 0, ]
+
+p1 <- ggplot(filtered_data, aes(x = `Curricular_units_1st_sem_(grade)`, y = `Curricular_units_2nd_sem_(grade)`)) +
+  geom_point(color = "blue", alpha = 0.6) +  # Punti trasparenti per migliore visibilità
+  theme_minimal() +
+  labs(title = "Scatterplot: Curricular Units Grade 1st Sem. VS 2nd Sem.",
+       x = "1st Sem. Grade",
+       y = "2nd Sem. Grade") +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+# Salvataggio del primo scatterplot
+ggsave("grafici/scatter_1st_vs_2nd_grade.pdf", plot = p1, width = 8, height = 6)
+
+# Scatterplot 2: Previous_qualification_(grade) vs Admission_grade
+p2 <- ggplot(data, aes(x = `Previous_qualification_grade`, y = `Admission_grade`)) +
+  geom_point(color = "blue", alpha = 0.6) +  # Punti trasparenti per migliore visibilità
+  theme_minimal() +
+  labs(title = "Scatterplot: Previous Qualification Grade VS Admission Grade",
+       x = "Previous Qualification Grade",
+       y = "Admission Grade") +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+# Salvataggio del secondo scatterplot
+ggsave("grafici/scatter_prev_qual_vs_admission.pdf", plot = p2, width = 8, height = 6)
+```
+

@@ -1,169 +1,5 @@
 ```{r}
-# Librerie
-library(here)
-library(ggplot2)
-
-# Caricamento Dataset
-data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
-data$Debtor <- factor(data$Debtor, levels = c(0, 1), labels = c("NO", "YES"))
-data$Scholarship_holder <- factor(data$Scholarship_holder, levels = c(0, 1), labels = c("NO", "YES"))
-data$Tuition_fees_up_to_date <- factor(data$Tuition_fees_up_to_date, levels = c(0, 1), labels = c("NO", "YES"))
-
-
-# Funzione per raggruppare categorie con bassa frequenza
-group_low_freq_categories <- function(column, threshold) {
-  column <- na.omit(column)
-  
-  freq_table <- prop.table(table(column)) * 100
-  
-  if (length(freq_table) <= 2) {
-    return(factor(column))
-  }
-  
-  low_freq_categories <- names(freq_table[freq_table < threshold])
-  
-  if (length(low_freq_categories) == 0) {
-    # Nessuna categoria con bassa frequenza
-    return(factor(column))
-  }
-  
-  grouped_column <- ifelse(column %in% low_freq_categories, 
-                           "Other", 
-                           as.character(column))
-  
-  unique_categories <- unique(grouped_column)
-  ordered_categories <- c(setdiff(sort(unique_categories), "Other"), "Other")
-  
-  return(factor(grouped_column, levels = ordered_categories))
-}
-
-# Seleziona Fattori Socio-Economici
-features_to_analyze <- c("Mothers_qualification","Fathers_qualification", "Mothers_occupation", "Fathers_occupation", "Scholarship_holder", "Debtor", "Tuition_fees_up_to_date")
-target <- "Target"
-
-low_freq_threshold <- 2
-
-# Funzione per creare Grouped Barplot
-create_grouped_barplot <- function(feature, target, data, threshold, colors) {
-  las <- 1
-  if(feature == "Course"){
-    las <- 2
-    threshold <- 0
-  }
-  
-  data[[paste0(feature, "_grouped")]] <- group_low_freq_categories(data[[feature]], threshold)
-  
-  
-  # Tabella di contingenza
-  contingency_table <- table(data[[target]], data[[paste0(feature, "_grouped")]])
-  
-  # Frequenza relativa
-  relative_freq_table <- prop.table(contingency_table, margin = 2) * 100
-  max_percent <- max(relative_freq_table)
-  
-  cleaned_feature_name <- gsub("_", " ", feature)
-  
-  pdf_filename <- paste0("Grafici/Grouped_Barplot_Target_", gsub(" ", "_", cleaned_feature_name), ".pdf")
-  
-  # Salvataggio in PDF
-  # pdf(pdf_filename)
-  
-  # Creazione del barplot
-  barplot_relative <- barplot(relative_freq_table, 
-                               beside = TRUE, 
-                               main = paste("Grouped Barplot:", cleaned_feature_name, "/", target),
-                               xlab = cleaned_feature_name, 
-                               ylab = "Frequenza Relativa (%)", 
-                               col = colors,
-                               ylim = c(0, max_percent * 1.4), # Maggiore spazio sopra le barre
-                               las = las)
-  
-  num_categories <- ncol(relative_freq_table) # Numero di categorie
-  
-  # Aggiungi percentuali sopra le barre solo se ci sono meno di 6 categorie
-  if (num_categories < 6) {
-    text_size <- ifelse(num_categories <= 3, 0.8, 0.6) # Adatta la dimensione delle label
-    
-    for (i in seq_len(nrow(relative_freq_table))) {
-      for (j in seq_len(ncol(relative_freq_table))) {
-        text(x = barplot_relative[i, j], 
-             y = relative_freq_table[i, j] + (max_percent * 0.05), # Offset aumentato
-             labels = sprintf("%.1f%%", relative_freq_table[i, j]), 
-             cex = text_size, 
-             col = "black")
-      }
-    }
-  }
-  
-  # Aggiunta della legenda
-  legend("top", inset = c(0, -0.01), 
-         legend = rownames(relative_freq_table), 
-         fill = colors, 
-         xpd = TRUE, horiz = TRUE)
-  
-  # dev.off()
-}
-
-color_palette <- c("#FF6A6A", "#32CD32", "#6495ED")
-
-# Creazione Barplot Fattori Socio-Economici / Target
-for (feature in features_to_analyze) {
-  create_grouped_barplot(feature = feature, 
-                         target = target, 
-                         data = data, 
-                         threshold = low_freq_threshold, 
-                         colors = color_palette)
-}
-
-
-```
-
-
-
-```{r}
-create_boxplot <- function(feature, target, data, colors) {
-  cleaned_feature_name <- gsub("_", " ", feature)
-  
-  # Creazione del boxplot
-  p <- ggplot(data, aes_string(x = target, y = feature, fill = target)) +
-    geom_boxplot(notch = TRUE,
-                 outlier.color = "darkblue",
-                 outlier.shape = 1,
-                 width = 0.6) +
-    stat_boxplot(geom = "errorbar",
-                 width = 0.2,
-                 color = "black") +
-    labs(title = paste("Boxplot:", cleaned_feature_name, "/", target),
-         x = target,
-         y = cleaned_feature_name) +
-    theme_minimal() +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold", vjust = 2),
-          legend.position = "none")
-  
-  pdf_filename <- paste0("Grafici/Boxplot_Target_", gsub(" ", "_", cleaned_feature_name), ".pdf")
-  # pdf(pdf_filename)
-  
-  # Mostra il grafico
-  print(p)
-  
-  # dev.off()
-}
-
-# Sottoinsieme di feature da analizzare
-features_to_analyze <- c("Unemployment_rate", "Inflation_rate", "GDP")
-target <- "Target"
-
-# Creazione dei Boxplot per ogni feature
-for (feature in features_to_analyze) {
-  create_boxplot(feature = feature, 
-                 target = target, 
-                 data = data, 
-                 colors = c("#FF6A6A", "#32CD32", "#6495ED"))
-}
-```
-
-```{r}
-# DEBTOR
+######## DEBTOR ############
 # Librerie
 library(ggplot2)
 library(dplyr)
@@ -181,14 +17,13 @@ data$Target <- factor(data$Target,
                       levels = c("Graduate", "Enrolled", "Dropout"), 
                       labels = c("Graduate", "Enrolled", "Dropout"))
 
-# Calcolo delle frequenze relative per ciascun gruppo Debtor
+# Calcolo delle frequenze relative per ciascun gruppo
 freq_debtor <- data %>%
   group_by(Debtor, Target) %>%
   summarise(Count = n(), .groups = "drop") %>%
   group_by(Debtor) %>%
   mutate(Perc = Count / sum(Count) * 100)
 
-# Definizione della palette di colori 
 color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
 
 # Creazione del grouped barplot
@@ -212,7 +47,7 @@ ggsave("Grafici/Grouped_Barplot_Debtor_Target.pdf", plot = p, width = 10, height
 ```
 
 ```{r}
-# SCHOLARSHIP HOLDER
+############ SCHOLARSHIP HOLDER ##################
 # Librerie
 library(ggplot2)
 library(dplyr)
@@ -226,14 +61,13 @@ data$Target <- factor(data$Target,
                       levels = c("Graduate", "Enrolled", "Dropout"), 
                       labels = c("Graduate", "Enrolled", "Dropout"))
 
-# Calcolo delle frequenze relative per ciascun gruppo Scholarship Holder
+# Calcolo delle frequenze relative per ciascun gruppo
 freq_scholarship <- data %>%
   group_by(Scholarship_holder, Target) %>%
   summarise(Count = n(), .groups = "drop") %>%
   group_by(Scholarship_holder) %>%
   mutate(Perc = Count / sum(Count) * 100)
 
-# Definizione della palette di colori 
 color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
 
 # Creazione del grouped barplot
@@ -257,7 +91,7 @@ ggsave("Grafici/Grouped_Barplot_Scholarship_Holder_Target.pdf", plot = p, width 
 ```
 
 ```{r}
-# TUITION FEES UP TO DATE
+############### TUITION FEES UP TO DATE ###############
 # Librerie
 library(ggplot2)
 library(dplyr)
@@ -271,14 +105,13 @@ data$Target <- factor(data$Target,
                       levels = c("Graduate", "Enrolled", "Dropout"), 
                       labels = c("Graduate", "Enrolled", "Dropout"))
 
-# Calcolo delle frequenze relative per ciascun gruppo Tuition Fees Up To Date
+# Calcolo delle frequenze relative per ciascun gruppo
 freq_tuition <- data %>%
   group_by(Tuition_fees_up_to_date, Target) %>%
   summarise(Count = n(), .groups = "drop") %>%
   group_by(Tuition_fees_up_to_date) %>%
   mutate(Perc = Count / sum(Count) * 100)
 
-# Definizione della palette di colori 
 color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
 
 # Creazione del grouped barplot
@@ -302,7 +135,7 @@ ggsave("Grafici/Grouped_Barplot_Tuition_Fees_Up_To_Date_Target.pdf", plot = p, w
 ```
 
 ```{r}
-#GDP
+############### GDP #################
 # Caricamento Dataset
 library(here)
 data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
@@ -312,12 +145,11 @@ library(ggplot2)
 library(dplyr)
 library(patchwork)
 
-# Conversione della variabile numerica in un formato adatto per il violin plot
 data$Target <- factor(data$Target, 
                       levels = c("Graduate", "Enrolled", "Dropout"), 
                       labels = c("Graduate", "Enrolled", "Dropout"))
 
-# Creazione del violin plot con boxplot sovrapposto e outlier visibili
+# Creazione del violin plot
 violin_box_plot <- ggplot(data, aes(x = Target, y = `GDP`, fill = Target)) +
   geom_violin(trim = FALSE, alpha = 0.6, color = "black") +
   geom_boxplot(width = 0.15, color = "black", outlier.shape = 16, outlier.size = 2, alpha = 0.8) +
@@ -339,7 +171,7 @@ ggsave("Grafici/Violin_Boxplot_GDP.pdf", plot = violin_box_plot, width = 16, hei
 ```
 
 ```{r}
-#INFLATION RATE
+############## INFLATION RATE ###############
 # Caricamento Dataset
 library(here)
 data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
@@ -349,12 +181,11 @@ library(ggplot2)
 library(dplyr)
 library(patchwork)
 
-# Conversione della variabile numerica in un formato adatto per il violin plot
 data$Target <- factor(data$Target, 
                       levels = c("Graduate", "Enrolled", "Dropout"), 
                       labels = c("Graduate", "Enrolled", "Dropout"))
 
-# Creazione del violin plot con boxplot sovrapposto e outlier visibili
+# Creazione del violin plot
 violin_box_plot <- ggplot(data, aes(x = Target, y = `Inflation_rate`, fill = Target)) +
   geom_violin(trim = FALSE, alpha = 0.6, color = "black") +
   geom_boxplot(width = 0.15, color = "black", outlier.shape = 16, outlier.size = 2, alpha = 0.8) +
@@ -376,7 +207,7 @@ ggsave("Grafici/Violin_Boxplot_Inflation_Rate.pdf", plot = violin_box_plot, widt
 ```
 
 ```{r}
-#UNEMPLOYMENT RATE
+############# UNEMPLOYMENT RATE ###################
 # Caricamento Dataset
 library(here)
 data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
@@ -386,12 +217,11 @@ library(ggplot2)
 library(dplyr)
 library(patchwork)
 
-# Conversione della variabile numerica in un formato adatto per il violin plot
 data$Target <- factor(data$Target, 
                       levels = c("Graduate", "Enrolled", "Dropout"), 
                       labels = c("Graduate", "Enrolled", "Dropout"))
 
-# Creazione del violin plot con boxplot sovrapposto e outlier visibili
+# Creazione del violin plot 
 violin_box_plot <- ggplot(data, aes(x = Target, y = `Unemployment_rate`, fill = Target)) +
   geom_violin(trim = FALSE, alpha = 0.6, color = "black") +
   geom_boxplot(width = 0.15, color = "black", outlier.shape = 16, outlier.size = 2, alpha = 0.8) +
@@ -413,7 +243,7 @@ ggsave("Grafici/Violin_Boxplot_Unemployment_Rate.pdf", plot = violin_box_plot, w
 ```
 
 ```{r}
-# GROUPED BARPLOT: MOTHERS_QUALIFICATION vs TARGET
+############ MOTHERS_QUALIFICATION #####################
 
 # Librerie
 library(ggplot2)
@@ -482,14 +312,13 @@ data$Mothers_qualification_grouped <- factor(data$Mothers_qualification_grouped,
                                                        "6-No Qualification"))
 
 
-# Calcolo delle frequenze relative per ciascun gruppo di Mothers_qualification_grouped
+# Calcolo delle frequenze relative per ciascun gruppo 
 freq_mother <- data %>%
   group_by(Mothers_qualification_grouped, Target) %>%
   summarise(Count = n(), .groups = "drop") %>%
   group_by(Mothers_qualification_grouped) %>%
   mutate(Perc = Count / sum(Count) * 100)
 
-# Definizione della palette di colori
 color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
 
 # Creazione del grouped barplot
@@ -513,7 +342,7 @@ ggsave("Grafici/Grouped_Barplot_Mothers_Qualification_Target.pdf", plot = p1, wi
 
 
 
-# GROUPED BARPLOT: FATHERS_QUALIFICATION vs TARGET
+############## FATHERS_QUALIFICATION ####################
 
 # Creazione della variabile accorpata con la nuova suddivisione
 data$Fathers_qualification_grouped <- recode(data$Fathers_qualification,
@@ -573,7 +402,7 @@ data$Fathers_qualification_grouped <- factor(data$Fathers_qualification_grouped,
                                                        "5-Basic Education (1º ciclo)", 
                                                        "6-No Qualification"))
 
-# Calcolo delle frequenze relative per ciascun gruppo di Fathers_qualification_grouped
+# Calcolo delle frequenze relative per ciascun gruppo 
 freq_father <- data %>%
   group_by(Fathers_qualification_grouped, Target) %>%
   summarise(Count = n(), .groups = "drop") %>%
@@ -602,7 +431,7 @@ ggsave("Grafici/Grouped_Barplot_Fathers_Qualification_Target.pdf", plot = p2, wi
 ```
 
 ```{r}
-# GROUPED BARPLOT: FATHERS_OCCUPATION_GROUPED vs TARGET
+############### FATHERS OCCUPATION ##############
 
 # Librerie
 library(ggplot2)
@@ -698,14 +527,13 @@ data$Fathers_occupation_grouped <- factor(data$Fathers_occupation_grouped,
                                                      "9-Student",
                                                      "10-Other/\nUnknown"))
 
-# Calcolo delle frequenze relative per ciascun gruppo di Fathers_occupation_grouped
+# Calcolo delle frequenze relative per ciascun gruppo 
 freq_fathers_occ <- data %>%
   group_by(Fathers_occupation_grouped, Target) %>%
   summarise(Count = n(), .groups = "drop") %>%
   group_by(Fathers_occupation_grouped) %>%
   mutate(Perc = Count / sum(Count) * 100)
 
-# Definizione della palette di colori
 color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
 
 # Creazione del grouped barplot
@@ -733,7 +561,7 @@ print(freq_fathers_occ)
 ```
 
 ```{r}
-# GROUPED BARPLOT: MOTHERS_OCCUPATION_GROUPED vs TARGET
+#############  MOTHERS OCCUPATION ###########
 
 # Librerie
 library(ggplot2)
@@ -816,14 +644,13 @@ data$Mothers_occupation_grouped <- factor(data$Mothers_occupation_grouped,
                                                      "9-Student",
                                                      "10-Other/\nUnknown"))
 
-# Calcolo delle frequenze relative per ciascun gruppo di Mothers_occupation_grouped
+# Calcolo delle frequenze relative per ciascun gruppo 
 freq_mothers_occ <- data %>%
   group_by(Mothers_occupation_grouped, Target) %>%
   summarise(Count = n(), .groups = "drop") %>%
   group_by(Mothers_occupation_grouped) %>%
   mutate(Perc = Count / sum(Count) * 100)
 
-# Definizione della palette di colori
 color_palette <- c("Graduate" = "#6495ED", "Enrolled" = "#32CD32", "Dropout" = "#FF6A6A")
 
 # Creazione del grouped barplot

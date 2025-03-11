@@ -1,8 +1,12 @@
+In questo File vengono analizzate le distribuzioni dei fattori demografici all`interno del dataset
+
 ```{r}
 # Librerie
 library(ggplot2)
 library(here)
 library(dplyr)
+library(patchwork)
+library(moments)
 
 # Creazione della cartella per i grafici, se non esiste
 if (!dir.exists("Grafici")) {
@@ -13,14 +17,11 @@ if (!dir.exists("Grafici")) {
 data <- read.csv(here("dataset/dataMod.csv"), sep = ",", header = TRUE, check.names = FALSE)
 
 ```
-
+GENDER: sesso degli studenti
 ```{r}
-#GENDER
+##### GENDER #####
 
-# Libreria necessaria
-library(ggplot2)
-
-# Sostituzione dei valori 0 e 1 con le etichette desiderate
+# Sostituzione dei valori 0 e 1 con le etichette
 data$Gender <- factor(data$Gender, levels = c(0, 1), labels = c("0-Female", "1-Male"))
 
 # Calcolo delle frequenze relative per Gender
@@ -45,11 +46,9 @@ ggsave("Grafici/PieChart_Gender.pdf", plot = p, width = 10, height = 6)
 
 ```
 
+MARITAL STATUS: Stato civile degli studenti
 ```{r}
-# MARITAL STATUS
-
-# Librerie
-library(ggplot2)
+##### MARITAL STATUS #####
 
 # Sostituzione dei valori numerici con le etichette corrispondenti
 data$Marital_status <- factor(data$Marital_status, 
@@ -63,22 +62,23 @@ marital_data <- data.frame(Status = names(freq_marital),
                            Count = as.numeric(freq_marital))
 marital_data$Perc <- marital_data$Count / sum(marital_data$Count) * 100
 
-# Creazione del barplot senza legenda
+# Creazione del barplot 
 p <- ggplot(marital_data, aes(x = Status, y = Perc, fill = Status)) +
   geom_bar(stat = "identity", width = 0.7) +
   labs(title = "Barplot: Marital Status", x = "Marital Status", y = "Frequenza Relativa (%)") +
   theme_minimal() +
   geom_text(aes(label = paste0(round(Perc, 1), "%")), vjust = -0.5, size = 4) +
   theme(plot.title = element_text(hjust = 0.5, face="bold"),
-        legend.position = "none")  # Rimuove la legenda
+        legend.position = "none") 
 
 # Salvataggio del grafico in PDF
 ggsave("Grafici/Barplot_Marital_Status.pdf", plot = p, width = 10, height = 6)
 
 ```
 
+Nazionalità Degli studenti
 ```{r}
-#NATIONALITY
+###### NATIONALITY #####
 
 # Librerie necessarie
 library(ggplot2)
@@ -89,11 +89,11 @@ nationality_data <- data.frame(Nationality = names(freq_nationality),
                                Count = as.numeric(freq_nationality))
 nationality_data$Perc <- nationality_data$Count / sum(nationality_data$Count) * 100
 
-# Ordinamento numerico delle categorie (1, 2, 3, ...) invece che per frequenza
+# Ordinamento numerico delle categorie (1, 2, 3, ...)
 nationality_data$Nationality <- factor(nationality_data$Nationality, 
                                        levels = sort(as.numeric(unique(nationality_data$Nationality))))
 
-# Creazione del barplot con gestione migliorata delle etichette e senza legenda
+# Creazione del barplot
 p <- ggplot(nationality_data, aes(x = Nationality, y = Perc, fill = Nationality)) +
   geom_bar(stat = "identity", width = 0.7) +
   labs(title = "Barplot: Nationality", x = "Nationality", y = "Frequenza Relativa (%)") + 
@@ -112,24 +112,14 @@ ggsave("Grafici/Barplot_Nationality.pdf", plot = p, width = 10, height = 6)
 
 ```
 
-
+Età in Fase di Immatricolazione
 ```{r}
-#AGE AT ENROLLMENT
-
-# Librerie necessarie
-library(ggplot2)
-library(patchwork)  # Per combinare i grafici
-library(moments)
-
-# Controllo se la colonna esiste
-if (!"Age_at_enrollment" %in% colnames(data)) {
-  stop("La colonna 'Age_at_enrollment' non esiste nel dataset.")
-}
+##### AGE AT ENROLLMENT #####
 
 # Rimozione di eventuali valori mancanti
 age_data <- na.omit(data$Age_at_enrollment)
 
-# Istogramma con frequenza relativa
+# Istogramma
 hist_plot <- ggplot(data, aes(x = Age_at_enrollment)) +
   geom_histogram(aes(y = (..count..) / length(age_data) * 100), 
                  binwidth = 1, color = "black", fill = "skyblue") +
@@ -138,10 +128,10 @@ hist_plot <- ggplot(data, aes(x = Age_at_enrollment)) +
        y = "Frequenza Relativa (%)") +
   theme_minimal() +
   theme(plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
-        plot.margin = margin(10, 10, 10, 10)) +  # Margini per separare meglio i grafici
-  coord_cartesian(ylim = c(0, max(table(age_data) / length(age_data) * 100) * 1.2))  # Adatta i limiti Y
+        plot.margin = margin(10, 10, 10, 10)) + 
+  coord_cartesian(ylim = c(0, max(table(age_data) / length(age_data) * 100) * 1.2))
 
-# Boxplot affiancato a destra dell'istogramma
+# Boxplot
 box_plot <- ggplot(data, aes(x = "", y = Age_at_enrollment)) +
   geom_boxplot(fill = "lightblue", color = "darkblue", width = 0.3) +
   labs(subtitle = "Boxplot", y = "Age") +
@@ -151,9 +141,9 @@ box_plot <- ggplot(data, aes(x = "", y = Age_at_enrollment)) +
         axis.text.x = element_blank(),   
         axis.ticks.x = element_blank(),
         plot.subtitle = element_text(hjust = 0.5, face = "bold", vjust = 2),
-        plot.margin = margin(10, 10, 10, 10))  # Margini per separare meglio i grafici
+        plot.margin = margin(10, 10, 10, 10))
 
-# Combinazione dei due grafici in orizzontale con un titolo unico
+# Combinazione dei due grafici 
 combined_plot <- (hist_plot | box_plot) + 
   plot_annotation(title = "Age At Enrollment") & 
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
