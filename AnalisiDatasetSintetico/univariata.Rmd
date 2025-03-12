@@ -112,7 +112,7 @@ library(patchwork)
 library(moments)
 library(here)
 
-data <- read.csv(here("dataset/synthetic_dataset_complete.csv"), sep = ",", header = TRUE, check.names = FALSE)
+data <- read.csv(here("dataset/Complete_Synthetic_Dataset.csv"), sep = ",", header = TRUE, check.names = FALSE)
 
 age_data <- na.omit(data$Age_at_enrollment)
 

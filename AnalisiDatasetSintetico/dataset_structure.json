@@ -1,0 +1,470 @@
+{
+  "dataset_description": {
+    "name": "Predict Students' Dropout and Academic Success - Synthetic Dataset",
+    "description": "A dataset created from a higher education institution (acquired from several disjoint databases) related to students enrolled in different undergraduate degrees, such as agronomy, design, education, nursing, journalism, management, social service, and technologies. The dataset includes information known at the time of student enrollment (academic path, demographics, and social-economic factors) and the students' academic performance at the end of the first and second semesters. The data is used to build classification models to predict students' dropout and academic sucess. The problem is formulated as a three category classification task, in which there is a strong imbalance towards one of the classes."
+  },
+  "features": [
+    {
+      "name": "Gender",
+      "type": "categorical",
+      "description": "Gender of the students",
+      "value_map": {
+        "0": "Female",
+        "1": "Male"
+      },
+      "observations": [
+        "Females have a slightly higher frequency than males",
+        "Most of the Female are Graduate (Target) and Most of Male are Dropout (Target)"
+      ]
+    },
+    {
+      "name": "Marital_status",
+      "type": "categorical",
+      "description": "Marital status of the students (partner status)",
+      "value_map": {
+        "1": "Single",
+        "2": "Married or Partner",
+        "3": "Previously Married"
+      },
+      "observations": [
+        "Most students are single.",
+        "Single have an higher Graduate (Target) frequency than others"
+      ]
+    },
+    {
+      "name": "Nationality",
+      "type": "categorical",
+      "description": "Student's nationality",
+      "value_map": {
+        "1": "Portuguese",
+        "2": "Other Nationality"
+      },
+      "observations": [
+        "Almost all the students are Portuguese."
+      ]
+    },
+    {
+      "name": "Age_at_enrollment",
+      "type": "quantitative discrete",
+      "description": "Age of the students at the time of enrollment",
+      "range": [
+        { "min": 17, "max": 70 }
+      ],
+      "unit": "years",
+      "observations": [
+        "The Dropout (Target) frequency increase as the Age at Enrollment increase"
+      ]
+    },
+    {
+      "name": "Debtor",
+      "type": "categorical",
+      "description": "Student with financial debts",
+      "value_map": {
+        "0": "No",
+        "1": "Yes"
+      },
+      "observations": [
+        "Most students do not have financial debts."
+      ]
+    },
+    {
+      "name": "Scholarship_holder",
+      "type": "categorical",
+      "description": "Student recipients of a scholarship",
+      "value_map": {
+        "0": "No",
+        "1": "Yes"
+      },
+      "observations": [
+        "Most students do not receive a scholarship."
+      ]
+    },
+    {
+      "name": "Tuition_fees_up_to_date",
+      "type": "categorical",
+      "description": "Student with tuition fees up to date",
+      "value_map": {
+        "0": "No",
+        "1": "Yes"
+      },
+      "observations": [
+        "Most students are up to date with tuition fee payments."
+      ]
+    },
+    {
+      "name": "Mothers_qualification",
+      "type": "categorical",
+      "description": "Mother's educational qualification",
+      "value_map": {
+        "1": "Higher Education",
+        "2": "Secondary Education",
+        "3": "Basic Education (3º ciclo)",
+        "4": "Basic Education (2º ciclo)",
+        "5": "Basic Education (1º ciclo)",
+        "6": "No Qualification"
+      },
+      "observations": [
+        "The most frequent qualifications are basic/secondary education levels."
+      ]
+    },
+    {
+      "name": "Fathers_qualification",
+      "type": "categorical",
+      "description": "Father's educational qualification",
+      "value_map": {
+        "1": "Higher Education",
+        "2": "Secondary Education",
+        "3": "Basic Education (3º ciclo)",
+        "4": "Basic Education (2º ciclo)",
+        "5": "Basic Education (1º ciclo)",
+        "6": "No Qualification"
+      },
+      "observations": [
+        "The most frequent qualifications are basic/secondary education levels."
+      ]
+    },
+    {
+      "name": "Mothers_occupation",
+      "type": "categorical",
+      "description": "Mother's employment status",
+      "value_map": {
+        "1": "High-Level Professional",
+        "2": "Admin & Sales Workers",
+        "3": "Service & Security Workers",
+        "4": "Agriculture & Skilled Workers",
+        "5": "Industry & Construction",
+        "6": "Machine & Transport Operators",
+        "7": "Unskilled Workers",
+        "8": "Armed Forces",
+        "9": "Student",
+        "10": "Other / Unknown"
+      },
+      "observations": [
+        "The category Unskilled Workers is predominant, while the others are balanced with each other."
+      ]
+    },
+    {
+      "name": "Fathers_occupation",
+      "type": "categorical",
+      "description": "Father's employment status",
+      "value_map": {
+        "1": "High-Level Professional",
+        "2": "Admin & Sales Workers",
+        "3": "Service & Security Workers",
+        "4": "Agriculture & Skilled Workers",
+        "5": "Industry & Construction",
+        "6": "Machine & Transport Operators",
+        "7": "Unskilled Workers",
+        "8": "Armed Forces",
+        "9": "Student",
+        "10": "Other / Unknown"
+      },
+      "observations": [
+        "The category Unskilled Workers is predominant, while the others are balanced with each other."
+      ]
+    },
+    {
+      "name": "Displaced",
+      "type": "categorical",
+      "description": "Student living away from home",
+      "value_map": {
+        "0": "No",
+        "1": "Yes"
+      },
+      "observations": [
+        "The two categories are fairly balanced."
+      ]
+    },
+    {
+      "name": "Attendance",
+      "type": "categorical",
+      "description": "Mode of class attendance of the student",
+      "value_map": {
+        "0": "Evening",
+        "1": "Daytime"
+      },
+      "observations": [
+        "Most students attend in Daytime mode."
+      ]
+    },
+    {
+      "name": "Educational_special_needs",
+      "type": "categorical",
+      "description": "Student with special educational needs",
+      "value_map": {
+        "0": "No",
+        "1": "Yes"
+      },
+      "observations": [
+        "Most students do not have special educational needs."
+      ]
+    },
+    {
+      "name": "International",
+      "type": "categorical",
+      "description": "Student enrolled in an international mobility program",
+      "value_map": {
+        "0": "No",
+        "1": "Yes"
+      },
+      "observations": [
+        "Most students are not involved in international mobility."
+      ]
+    },
+    {
+      "name": "Application_mode",
+      "type": "categorical",
+      "description": "Enrollment method",
+      "value_map": {
+        "1": "General Contingent",
+        "2": "Transfers & Changes",
+        "3": "Older Students",
+        "4": "Special Diplomas",
+        "5": "Special Contingent & Ordinances"
+      },
+      "observations": [
+        "Most students enroll through the General Contingent mode."
+      ]
+    },
+    {
+      "name": "Application_order",
+      "type": "categorical",
+      "description": "Preference expressed at enrollment",
+      "value_map": {
+        "1": "1st Choice",
+        "2": "2nd Choice",
+        "3": "3rd Choice",
+        "4": "4th Choice",
+        "5": "5th Choice"
+      },
+      "observations": [
+        "The frequency decreases as the priority decreases (1st Choice = highest frequency, 5th Choice = lowest frequency)."
+      ]
+    },
+    {
+      "name": "Previous_qualification",
+      "type": "categorical",
+      "description": "Previous qualification of the student",
+      "value_map": {
+        "1": "Higher Education",
+        "2": "Secondary Education",
+        "3": "Technological Specialization",
+        "4": "Basic Education"
+      },
+      "observations": [
+        "Most students have a Secondary Education."
+      ]
+    },
+    {
+      "name": "Course",
+      "type": "categorical",
+      "description": "Course attended by the student",
+      "value_map": {
+        "1": "Health Sciences",
+        "2": "Veterinary Sciences",
+        "3": "Social Sciences",
+        "4": "Business & Management",
+        "5": "Communication & Design",
+        "6": "Engineering & Technology",
+        "7": "Agriculture & Environment",
+        "8": "Tourism & Services"
+      },
+      "observations": [
+        "The categories are quite balanced."
+      ]
+    },
+    {
+      "name": "Previous_qualification_(grade)",
+      "type": "quantitative continuous",
+      "description": "Final grade of the previous qualification",
+      "range": [
+        {"min": 95, "max": 200}
+      ],
+      "observations": [
+        "Previous_qualification_(grade) has a moderate positive correlation with Admission_grade"
+      ]
+    },
+    {
+      "name": "Admission_grade",
+      "type": "quantitative continuous",
+      "description": "Admission grade to the course",
+      "range": [
+        {"min": 95, "max": 200}
+      ],
+      "observations": [
+        "Admission_grade has a moderate positive correlation with Previous_qualification_(grade)"
+      ]
+    },
+    {
+      "name": "Curricular_units_1st_sem_(credited)",
+      "type": "quantitative discrete",
+      "description": "Validated Curricular Units in the first semester",
+      "range": [
+        { "min": 0}
+      ],
+      "observations": [
+        "Most students have 0 Curricular Units Credited"
+      ]
+    },
+    {
+      "name": "Curricular_units_2nd_sem_(credited)",
+      "type": "quantitative discrete",
+      "description": "Validated Curricular Units in the second semester",
+      "range": [
+        { "min": 0}
+      ],
+      "observations": [
+        "Most students have 0 Curricular Units Credited"
+      ]
+    },
+    {
+      "name": "Curricular_units_1st_sem_(enrolled)",
+      "type": "quantitative discrete",
+      "description": "Curricular Units attended in the first semester",
+      "range": [
+        { "min": 0}
+      ],
+      "observations": [
+        "Curricular_units_1st_sem_(enrolled) have a positive correlation With Curricular_units_2nd_sem_(enrolled)"
+      ]
+    },
+    {
+      "name": "Curricular_units_2nd_sem_(enrolled)",
+      "type": "quantitative discrete",
+      "description": "Curricular Units attended in the second semester",
+      "range": [
+        { "min": 0}
+      ],
+      "observations": [
+        "Curricular_units_2nd_sem_(enrolled) have a positive correlation With Curricular_units_1st_sem_(enrolled)"
+      ]
+    },
+    {
+      "name": "Curricular_units_1st_sem_(evaluations)",
+      "type": "quantitative discrete",
+      "description": "Number of assessments received (attempts made) for the curricular units in the first semester",
+      "range": [
+        { "min": 0}
+      ],
+      "observations": [
+        "Curricular_units_1st_sem_(evaluations) have a positive correlation With Curricular_units_2nd_sem_(evaluations)"
+      ]
+    },
+    {
+      "name": "Curricular_units_2nd_sem_(evaluations)",
+      "type": "quantitative discrete",
+      "description": "Number of assessments received (attempts made) for the curricular units in the second semester",
+      "range": [
+        { "min": 0}
+      ],
+      "observations": [
+        "Curricular_units_2nd_sem_(evaluations) have a positive correlation With Curricular_units_1st_sem_(evaluations)"
+      ]
+    },
+    {
+      "name": "Curricular_units_1st_sem_(approved)",
+      "type": "quantitative discrete",
+      "description": "Completed Curricular Units (exam passed) in the first semester",
+      "range": [
+        { "min": 0}
+      ],
+      "observations": [
+        "Curricular_units_1st_sem_(approved) have a strong positive correlation With Curricular_units_2nd_sem_(approved)"
+      ]
+    },
+    {
+      "name": "Curricular_units_2nd_sem_(approved)",
+      "type": "quantitative discrete",
+      "description": "Completed Curricular Units (exam passed) in the second semester",
+      "range": [
+        { "min": 0}
+      ],
+      "observations": [
+        "Curricular_units_2nd_sem_(approved) have a strong positive correlation With Curricular_units_1st_sem_(approved)"
+      ]
+    },
+    {
+      "name": "Curricular_units_1st_sem_(grade)",
+      "type": "quantitative continuous",
+      "description": "Average grade of the curricular units in the first semester",
+      "range": [
+        { "min": 10, "max": 20 }
+      ],
+      "observations": [
+        "Curricular_units_1st_sem_(grade) have a positive correlation With Curricular_units_2nd_sem_(grade)",
+        "Students with an higher Curricular_units_1st_sem_(grade) have an higher Graduate (Target) Frequency Rate"
+      ]
+    },
+    {
+      "name": "Curricular_units_2nd_sem_(grade)",
+      "type": "quantitative continuous",
+      "description": "Average grade of the curricular units in the second semester",
+      "range": [
+        { "min": 10, "max": 20 }
+      ],
+      "observations": [
+        "Curricular_units_2nd_sem_(grade) have a strong positive correlation With Curricular_units_1st_sem_(grade)",
+        "Students with an higher Curricular_units_2nd_sem_(grade) have an higher Graduate (Target) Frequency Rate"
+        
+      ]
+    },
+    {
+      "name": "Curricular_units_1st_sem_(without_evaluations)",
+      "type": "quantitative discrete",
+      "description": "Curricular Units without evaluations in the first semester",
+      "range": [
+        { "min": 0}
+      ],
+      "observations": [
+        "Most students have 0 Curricular Units Without Evaluations."
+      ]
+    },
+    {
+      "name": "Curricular_units_2nd_sem_(without_evaluations)",
+      "type": "quantitative discrete",
+      "description": "Curricular Units without evaulations in the second semester",
+      "range": [
+        { "min": 0}
+      ],
+      "observations": [
+        "Most students have 0 Curricular Units Without Evaluations."
+      ]
+    },
+    {
+      "name": "GDP",
+      "type": "quantitative continuous",
+      "description": "Percentage change in GDP of Portugal in the year of enrollment",
+      "observations": [
+        "GDP have a moderate negative correlation With Unemployment_rate"
+      ]
+    },
+    {
+      "name": "Inflation_rate",
+      "type": "quantitative continuous",
+      "description": "Inflation rate of Portugal in the year of enrollment",
+      "observations": [
+      ]
+    },
+    {
+      "name": "Unemployment_rate",
+      "type": "quantitative continuous",
+      "description": "Unemployment rate of Portugal in the year of enrollment",
+      "observations": [
+        "Unemployment_rate have a moderate negative correlation with GDP"
+      ]
+    },
+    {
+      "name": "Target",
+      "type": "categorical",
+      "description": "Student outcome at the end of the academic course duration (Target)",
+      "value_array": [
+        "Graduate",
+        "Enrolled",
+        "Dropout"
+      ],
+      "observations": [
+        "Graduate has the highest frequency followed by Dropout and Enrolled"
+      ]
+    }
+  ]
+}
